@@ -115,6 +115,31 @@ ENV/
 env.bak/
 venv.bak/
 
+# Project specific
+chenguang.db
+chenguang.db.*
+logs/
+.workbuddy/
+bootstrap_db.pyc
+init_data.pyc
+wait_ready.pyc
+
+# Frontend build
+app/dist/
+app/node_modules/
+app/.vite/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
 # Spyder project settings
 .spyderproject
 .spyproject
