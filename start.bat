@@ -17,12 +17,12 @@ echo.
 REM ==================== 1. Python 环境 ====================
 echo [1/5] 检查 Python 环境 ...
 set "SYS_PY="
-where python >nul 2>&1
+where py >nul 2>&1
 if not errorlevel 1 (
-    set "SYS_PY=python"
+    set "SYS_PY=py -3"
 ) else (
-    where py >nul 2>&1
-    if not errorlevel 1 set "SYS_PY=py -3"
+    where python >nul 2>&1
+    if not errorlevel 1 set "SYS_PY=python"
 )
 
 if not defined SYS_PY (
@@ -34,13 +34,13 @@ if not defined SYS_PY (
     exit /b 1
 )
 
-REM 检查虚拟环境是否有效（Python 可执行文件是否存在）
+REM 检查虚拟环境是否有效
 if not exist "%PY%" (
     echo       未发现有效虚拟环境，正在创建 .venv ...
     %SYS_PY% -m venv .venv
     if errorlevel 1 (
         echo.
-        echo [错误] 创建虚拟环境失败，请检查 Python 版本是否兼容
+        echo [错误] 创建虚拟环境失败
         pause
         exit /b 1
     )
@@ -57,7 +57,7 @@ if errorlevel 1 (
     "%PY%" -m pip install -r requirements.txt
     if errorlevel 1 (
         echo.
-        echo [错误] 依赖安装失败，建议配置清华镜像源加速：
+        echo [错误] 依赖安装失败，可配置清华镜像源：
         echo        pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
         echo.
         pause
@@ -66,15 +66,10 @@ if errorlevel 1 (
 )
 echo       核心依赖检查通过
 
-REM 额外安装 minio (开发环境需要)
 "%PY%" -c "import minio" >nul 2>&1
 if errorlevel 1 (
     echo       安装 minio 客户端 ...
     "%PY%" -m pip install minio
-    if errorlevel 1 (
-        echo.
-        echo [警告] minio 安装失败，文件上传功能可能不可用
-    )
 )
 echo       依赖安装完成
 
@@ -83,7 +78,7 @@ echo [3/5] 初始化数据库 ...
 "%PY%" bootstrap_db.py
 if errorlevel 1 (
     echo.
-    echo [错误] 数据库初始化失败，请查看上方日志排查
+    echo [错误] 数据库初始化失败
     pause
     exit /b 1
 )
@@ -98,7 +93,7 @@ if not exist "%ROOT%\app\node_modules" (
     popd
     if errorlevel 1 (
         echo.
-        echo [错误] npm 安装失败，请检查是否安装 Node.js 18+ 版本
+        echo [错误] npm 安装失败，请确认已安装 Node.js 18+
         pause
         exit /b 1
     )
@@ -113,7 +108,7 @@ call :port_busy 8080
 if "!BUSY!"=="1" (
     echo       端口 8080 已被占用，跳过后端启动
 ) else (
-    start "辰光Agent-后端 8080" cmd /k "cd /d ""%ROOT%"" && ""%PY%"" -m uvicorn src.main:app --host 127.0.0.1 --port 8080"
+    start "辰光Agent-后端 8080" /D "%ROOT%" cmd /k "%PY% -m uvicorn src.main:app --host 127.0.0.1 --port 8080"
     echo       后端服务启动中 ...
 )
 
@@ -121,7 +116,7 @@ call :port_busy 5173
 if "!BUSY!"=="1" (
     echo       端口 5173 已被占用，跳过前端启动
 ) else (
-    start "辰光Agent-前端 5173" cmd /k "cd /d ""%ROOT%\app"" && npm.cmd run dev"
+    start "辰光Agent-前端 5173" /D "%ROOT%\app" cmd /k "npm.cmd run dev"
     echo       前端服务启动中 ...
 )
 
@@ -141,10 +136,10 @@ if "!READY!"=="0" (
     echo   启动成功！正在打开浏览器 ...
     start "" "http://localhost:5173"
 ) else (
-    echo   启动超时，服务可能尚未就绪，请查看控制台输出排查
+    echo   启动超时，请查看控制台输出排查
 )
 echo.
-echo   关闭窗口即可停止服务，日志保存在 logs/ 目录
+echo   关闭窗口即可停止服务
 echo ================================================
 echo.
 pause
