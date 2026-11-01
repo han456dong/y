@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>角色管理 · 辰光 Agent RBAC 原型</title>
+<link rel="stylesheet" href="assets/prototype.css">
+</head>
+<body data-page="roles" data-crumb="系统管理 / 角色管理">
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="page" data-required="system.role:read">
+
+      <div class="guard-state">
+        <section class="centered-state">
+          <div class="state-card">
+            <div class="state-code">403</div>
+            <h1 class="state-title">这个页面不在你的授权范围内。</h1>
+            <p class="state-text">你当前的身份是 <span class="js-role-label">运营人员</span>。角色管理需要 <b>system.role:read</b>，运营与只读身份都没有这项授权。</p>
+            <div class="state-actions">
+              <a class="btn btn-primary" href="dashboard.html">返回工作台</a>
+              <a class="btn btn-secondary" href="forbidden.html">查看完整 403 页面</a>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="guarded-content">
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">角色管理</h1>
+            <p class="page-sub">3 个内置角色 · 1 个自定义角色。选择左侧角色，在右侧账簿中勾选权限。</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary" data-open="create-role-modal" data-perm="system.role:create">创建角色</button>
+          </div>
+        </div>
+
+        <div class="roles-layout">
+          <aside class="section" aria-labelledby="role-list-title">
+            <div class="section-head">
+              <h2 class="section-title" id="role-list-title">角色</h2>
+              <span class="section-note"><b>4</b> 个</span>
+            </div>
+            <div class="role-list" id="role-list"></div>
+            <div class="notice" style="margin-top:16px">
+              <svg class="notice-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+              <div>内置角色可以调整权限，但不可删除、不可修改编码。</div>
+            </div>
+          </aside>
+
+          <section class="section" aria-labelledby="matrix-heading">
+            <div class="matrix-head" id="matrix-heading">
+              <div>
+                <div class="matrix-title">
+                  <span id="matrix-title">运营人员</span>
+                  <span class="badge badge-system" id="matrix-system-badge">内置</span>
+                </div>
+                <div class="matrix-sub" id="matrix-sub">operator · 内置角色 · 8 位用户</div>
+              </div>
+              <div class="matrix-actions">
+                <button class="btn btn-sm btn-secondary" data-demo-action="编辑角色" data-perm="system.role:update">编辑角色</button>
+                <button class="btn btn-sm btn-danger" id="delete-role-btn" data-demo-action="删除角色" data-perm="system.role:delete">删除角色</button>
+                <button class="btn btn-sm btn-primary" id="save-matrix" data-perm="system.role:assign">保存权限</button>
+              </div>
+            </div>
+
+            <div class="matrix-progress">
+              <div class="mp-track"><div class="mp-fill" id="mp-fill" style="width:43%"></div></div>
+              <div class="mp-text" id="mp-text">已选 <b>27</b> / 63 项</div>
+              <span class="unsaved" id="matrix-unsaved">有未保存的更改</span>
+            </div>
+
+            <div class="matrix-wrap" id="matrix" aria-live="polite">
+              <noscript>需要启用 JavaScript 才能查看权限矩阵。</noscript>
+            </div>
+
+            <div class="matrix-legend">
+              <span><i class="legend-mark on"></i>已授予</span>
+              <span><i class="legend-mark"></i>未授予</span>
+              <span><i class="legend-mark na"></i>该模块没有此操作</span>
+              <span style="margin-left:auto">点击模块左侧方框可整组勾选</span>
+            </div>
+
+            <div class="notice notice-gold" style="margin-top:20px">
+              <svg class="notice-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2L12 3z"/><path d="M12 9v5M12 17h.01"/></svg>
+              <div>
+                <span class="notice-title">超级管理员角色是例外。</span>
+                <b>admin</b> 固定拥有全部 63 项权限，权限集合不可缩减。真正让超管绕过校验的是账号上的
+                <span class="mono">is_superuser</span> 标记，而不是角色本身。
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <footer class="page-foot">
+          <span>辰光 Agent · RBAC 授权原型 · 2026-10-25</span>
+          <span>权限树数据来源：GET /api/v1/permissions/tree</span>
+        </footer>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 创建角色弹窗 -->
+<div class="modal" id="create-role-modal" role="dialog" aria-modal="true" aria-labelledby="create-role-title">
+  <form id="create-role-form">
+    <div class="modal-head">
+      <div>
+        <div class="drawer-title" id="create-role-title">创建角色</div>
+        <div class="drawer-sub">创建后从空白权限开始，再为它勾选操作</div>
+      </div>
+      <button class="icon-close" type="button" data-close aria-label="关闭">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label for="role-code">角色编码</label>
+          <input class="input" id="role-code" required placeholder="如: auditor" pattern="[a-z][a-z0-9_]*">
+          <span class="field-hint">小写字母开头，创建后不可修改。</span>
+        </div>
+        <div class="field">
+          <label for="role-name">角色名称</label>
+          <input class="input" id="role-name" required placeholder="如: 审计员">
+        </div>
+        <div class="field full">
+          <label for="role-description">描述</label>
+          <input class="input" id="role-description" placeholder="这个角色负责什么？">
+        </div>
+      </div>
+      <div class="notice">
+        <svg class="notice-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        <div>新角色默认没有任何权限。创建成功后会自动选中它，你可以直接在矩阵中勾选。</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" type="button" data-close>取消</button>
+      <button class="btn btn-primary" type="submit">创建角色</button>
+    </div>
+  </form>
+</div>
+
+<div class="overlay"></div>
+<script src="assets/prototype.js"></script>
+</body>
+</html>

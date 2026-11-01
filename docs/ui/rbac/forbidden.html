@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>403 · 辰光 Agent RBAC 原型</title>
+<link rel="stylesheet" href="assets/prototype.css">
+</head>
+<body data-page="forbidden" data-crumb="403" data-default-role="operator">
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="page">
+      <section class="centered-state">
+        <div class="state-card">
+          <div class="state-code">403</div>
+          <h1 class="state-title">这个页面不在你的授权范围内。</h1>
+          <p class="state-text" id="forbidden-note">你当前的身份是 <span id="forbidden-role">运营人员</span>。系统管理需要额外的授权，请联系管理员。</p>
+          <div class="state-actions">
+            <button class="btn btn-primary" type="button" id="back-dashboard">返回工作台</button>
+            <a class="btn btn-secondary" href="login.html">切换身份</a>
+          </div>
+
+          <div class="strike-ledger" id="forbidden-ledger"></div>
+
+          <div class="section" style="margin-top:34px">
+            <div class="section-head">
+              <h2 class="section-title">为什么看到这个页面</h2>
+              <span class="section-note">默认拒绝，而不是默认放行</span>
+            </div>
+            <div class="module-row" style="grid-template-columns:150px 1fr">
+              <div class="module-name">路由守卫</div>
+              <div style="color:var(--muted)">在渲染页面前检查权限，不满足时直接进入 403，页面内容不会短暂闪现。</div>
+            </div>
+            <div class="module-row" style="grid-template-columns:150px 1fr">
+              <div class="module-name">服务端校验</div>
+              <div style="color:var(--muted)">即使有人绕过前端直接调用接口，后端仍会返回 403 与业务码 40301。</div>
+            </div>
+            <div class="module-row" style="grid-template-columns:150px 1fr">
+              <div class="module-name">权限加载失败</div>
+              <div style="color:var(--muted)">取不到权限时不显示全量菜单，也不默认放行；只提供重试与回登录两条路径。</div>
+            </div>
+          </div>
+
+          <footer class="page-foot">
+            <span>辰光 Agent · RBAC 授权原型 · 2026-10-25</span>
+            <span>此页面不展示所需的权限码</span>
+          </footer>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="overlay"></div>
+<script src="assets/prototype.js"></script>
+</body>
+</html>

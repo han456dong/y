@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>权限管理 · 辰光 Agent RBAC 原型</title>
+<link rel="stylesheet" href="assets/prototype.css">
+</head>
+<body data-page="permissions" data-crumb="系统管理 / 权限管理">
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="page" data-required="system.permission:read">
+
+      <div class="guard-state">
+        <section class="centered-state">
+          <div class="state-card">
+            <div class="state-code">403</div>
+            <h1 class="state-title">这个页面不在你的授权范围内。</h1>
+            <p class="state-text">你当前的身份是 <span class="js-role-label">运营人员</span>。权限目录属于系统管理，只有被授予 <span class="mono">system.permission:read</span> 的角色可以查看。</p>
+            <div class="state-actions">
+              <a class="btn btn-primary" href="dashboard.html">返回工作台</a>
+              <a class="btn btn-secondary" href="forbidden.html">查看完整 403 页面</a>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="guarded-content">
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">权限管理</h1>
+            <p class="page-sub">63 条内置权限 · 2 条自定义权限 · 16 个模块。权限码创建后不可修改。</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary" data-open="create-perm-modal" data-perm="system.permission:create">创建权限</button>
+          </div>
+        </div>
+
+        <div class="stat-strip">
+          <div class="stat">
+            <div class="stat-value">63</div>
+            <div class="stat-label">内置权限</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">16</div>
+            <div class="stat-label">覆盖模块</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">2</div>
+            <div class="stat-label">自定义权限</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">0</div>
+            <div class="stat-label">已停用权限</div>
+          </div>
+        </div>
+
+        <div class="notice notice-gold">
+          <svg class="notice-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2L12 3z"/><path d="M12 9v5M12 17h.01"/></svg>
+          <div>
+            <span class="notice-title">删除自定义权限会同时从所有角色中移除它。</span>
+            内置权限受保护，只能修改名称与描述。任何权限目录的变更都会让权限缓存版本 +1，受影响用户下一次请求即使用新集合。
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5"/></svg>
+            <input class="input" type="search" id="perm-search" placeholder="搜索权限码或名称" aria-label="搜索权限">
+          </div>
+          <span class="spacer"></span>
+          <span class="section-note">当前身份 <b class="js-role-short">管理员</b></span>
+        </div>
+
+        <div class="chip-row" style="margin-bottom:14px" role="group" aria-label="按模块筛选">
+          <button class="chip active" data-perm-filter="all">全部</button>
+          <button class="chip" data-perm-filter="agent">Agent</button>
+          <button class="chip" data-perm-filter="knowledge">知识库</button>
+          <button class="chip" data-perm-filter="tool">工具</button>
+          <button class="chip" data-perm-filter="conversation">对话</button>
+          <button class="chip" data-perm-filter="analytics">统计</button>
+          <button class="chip" data-perm-filter="system.">系统</button>
+          <button class="chip" data-perm-filter="custom">自定义</button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="ledger">
+            <thead>
+              <tr>
+                <th>权限码</th>
+                <th>权限名称</th>
+                <th>模块</th>
+                <th>动作</th>
+                <th>来源</th>
+                <th style="text-align:right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="perm-rows">
+              <tr data-module="agent" data-system="1" data-search="agent:read 查看 agent agent 查看 内置">
+                <td><span class="mono">agent:read</span></td>
+                <td>查看 Agent</td>
+                <td>agent</td>
+                <td>查看</td>
+                <td><span class="badge badge-system">内置</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm-edit>编辑</button>
+                    <button class="btn btn-sm btn-danger" data-perm-delete disabled title="内置权限不可删除">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-module="agent" data-system="1" data-search="agent:create 创建 agent agent 创建 内置">
+                <td><span class="mono">agent:create</span></td>
+                <td>创建 Agent</td>
+                <td>agent</td>
+                <td>创建</td>
+                <td><span class="badge badge-system">内置</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm-edit>编辑</button>
+                    <button class="btn btn-sm btn-danger" data-perm-delete disabled title="内置权限不可删除">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-module="agent" data-system="1" data-search="agent:delete 删除 agent agent 删除 内置">
+                <td><span class="mono">agent:delete</span></td>
+                <td>删除 Agent</td>
+                <td>agent</td>
+                <td>删除</td>
+                <td><span class="badge badge-system">内置</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm-edit>编辑</button>
+                    <button class="btn btn-sm btn-danger" data-perm-delete disabled title="内置权限不可删除">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-module="knowledge" data-system="1" data-search="knowledge:upload 上传知识库 knowledge 上传 内置">
+                <td><span class="mono">knowledge:upload</span></td>
+                <td>上传文档</td>
+                <td>knowledge</td>
+                <td>上传</td>
+                <td><span class="badge badge-system">内置</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm-edit>编辑</button>
+                    <button class="btn btn-sm btn-danger" data-perm-delete disabled title="内置权限不可删除">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-module="tool" data-system="1" data-search="tool:test 测试工具 tool 测试 内置">
+                <td><span class="mono">tool:test</span></td>
+                <td>测试工具</td>
+                <td>tool</td>
+                <td>测试</td>
+                <td><span class="badge badge-system">内置</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm-edit>编辑</button>
+                    <button class="btn btn-sm btn-danger" data-perm-delete disabled title="内置权限不可删除">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-module="conversation" data-system="1" data-search="conversation:annotate 标注对话 conversation 标注 内置">
+                <td><span class="mono">conversation:annotate</span></td>
+                <td>标注对话</td>
+                <td>conversation</td>
+                <td>标注</td>
+                <td><span class="badge badge-system">内置</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm-edit>编辑</button>
+                    <button class="btn btn-sm btn-danger" data-perm-delete disabled title="内置权限不可删除">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-module="analytics" data-system="1" data-search="analytics:export 导出统计 analytics 导出 内置">
+                <td><span class="mono">analytics:export</span></td>
+                <td>导出统计</td>
+                <td>analytics</td>
+                <td>导出</td>
+                <td><span class="badge badge-system">内置</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm-edit>编辑</button>
+                    <button class="btn btn-sm btn-danger" data-perm-delete disabled title="内置权限不可删除">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-module="system.user" data-system="1" data-search="system.user:assign 分配角色 system.user 分配 内置">
+                <td><span class="mono">system.user:assign</span></td>
+                <td>分配角色</td>
+                <td>system.user</td>
+                <td>分配</td>
+                <td><span class="badge badge-system">内置</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm-edit>编辑</button>
+                    <button class="btn btn-sm btn-danger" data-perm-delete disabled title="内置权限不可删除">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-module="system.role" data-system="1" data-search="system.role:assign 分配权限 system.role 分配 内置">
+                <td><span class="mono">system.role:assign</span></td>
+                <td>分配权限</td>
+                <td>system.role</td>
+                <td>分配</td>
+                <td><span class="badge badge-system">内置</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm-edit>编辑</button>
+                    <button class="btn btn-sm btn-danger" data-perm-delete disabled title="内置权限不可删除">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-module="system.permission" data-system="1" data-search="system.permission:read 查看权限 system.permission 查看 内置">
+                <td><span class="mono">system.permission:read</span></td>
+                <td>查看权限</td>
+                <td>system.permission</td>
+                <td>查看</td>
+                <td><span class="badge badge-system">内置</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm-edit>编辑</button>
+                    <button class="btn btn-sm btn-danger" data-perm-delete disabled title="内置权限不可删除">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-module="system.settings" data-system="1" data-search="system.settings:update 修改配置 system.settings 编辑 内置">
+                <td><span class="mono">system.settings:update</span></td>
+                <td>修改配置</td>
+                <td>system.settings</td>
+                <td>编辑</td>
+                <td><span class="badge badge-system">内置</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm-edit>编辑</button>
+                    <button class="btn btn-sm btn-danger" data-perm-delete disabled title="内置权限不可删除">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-module="custom" data-system="0" data-search="custom:report 查看自定义报表 custom 查看 自定义">
+                <td><span class="mono">custom:report</span></td>
+                <td>查看自定义报表</td>
+                <td>custom</td>
+                <td>查看</td>
+                <td><span class="badge badge-neutral">自定义</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm-edit>编辑</button>
+                    <button class="btn btn-sm btn-danger" data-perm-delete>删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-module="custom" data-system="0" data-search="custom:audit_view 查看留痕 custom 查看 自定义">
+                <td><span class="mono">custom:audit_view</span></td>
+                <td>查看留痕</td>
+                <td>custom</td>
+                <td>查看</td>
+                <td><span class="badge badge-neutral">自定义</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm-edit>编辑</button>
+                    <button class="btn btn-sm btn-danger" data-perm-delete>删除</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-foot">
+          <span>显示 1–13 条，共 65 条</span>
+          <div class="pager" aria-label="分页">
+            <button disabled>上一页</button>
+            <button class="active">1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>下一页</button>
+          </div>
+        </div>
+
+        <footer class="page-foot">
+          <span>辰光 Agent · RBAC 授权原型 · 2026-10-25</span>
+          <span>权限码格式：模块:操作，例如 custom:read</span>
+        </footer>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 创建权限弹窗 -->
+<div class="modal" id="create-perm-modal" role="dialog" aria-modal="true" aria-labelledby="create-perm-title">
+  <form id="create-perm-form">
+    <div class="modal-head">
+      <div>
+        <div class="drawer-title" id="create-perm-title">创建权限</div>
+        <div class="drawer-sub">权限码创建后不可修改，请按「模块:操作」命名</div>
+      </div>
+      <button class="icon-close" type="button" data-close aria-label="关闭">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="perm-code">权限码</label>
+        <input class="input" id="perm-code" required placeholder="custom:read" autocomplete="off">
+        <span class="field-error" id="perm-code-error" style="display:none">权限码格式应为 模块:操作，例如 custom:read。</span>
+        <span class="field-hint" id="perm-preview">输入后自动拆分为模块与操作。</span>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="perm-name">权限名称</label>
+          <input class="input" id="perm-name" required placeholder="如: 查看自定义报表">
+        </div>
+        <div class="field">
+          <label for="perm-description">描述</label>
+          <input class="input" id="perm-description" placeholder="可选">
+        </div>
+      </div>
+      <div class="notice">
+        <svg class="notice-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        <div>创建成功后，该权限会出现在角色管理的权限账簿中，可以分配给任意角色。</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" type="button" data-close>取消</button>
+      <button class="btn btn-primary" type="submit" id="save-perm" disabled>创建权限</button>
+    </div>
+  </form>
+</div>
+
+<div class="overlay"></div>
+<script src="assets/prototype.js"></script>
+</body>
+</html>

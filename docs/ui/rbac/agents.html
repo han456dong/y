@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 管理 · 辰光 Agent RBAC 原型</title>
+<link rel="stylesheet" href="assets/prototype.css">
+</head>
+<body data-page="agents" data-crumb="Agent 管理">
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="page" data-required="agent:read">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Agent 管理</h1>
+          <p class="page-sub">4 个 Agent · 3 个运行中 · 1 个草稿。右侧的操作按钮按当前身份收敛。</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-primary" id="create-agent" data-perm="agent:create">新建 Agent</button>
+        </div>
+      </div>
+
+      <div class="notice">
+        <svg class="notice-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        <div>
+          <span class="notice-title">当前身份的可见范围</span>
+          <span id="agent-role-note">正在读取权限。</span>
+          <span class="lens-hint">权限透视已打开，被隐藏的操作会以斜纹显示。</span>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5"/></svg>
+          <input class="input" type="search" placeholder="搜索 Agent 名称或描述" aria-label="搜索 Agent">
+        </div>
+        <select class="select" aria-label="类型筛选">
+          <option>全部类型</option>
+          <option>对话型</option>
+          <option>分析型</option>
+          <option>创作型</option>
+        </select>
+        <select class="select" aria-label="状态筛选">
+          <option>全部状态</option>
+          <option>运行中</option>
+          <option>草稿</option>
+        </select>
+        <span class="spacer"></span>
+        <span class="section-note">打开右上角「权限透视」查看被隐藏的操作</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="ledger">
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>类型</th>
+              <th>绑定模型</th>
+              <th>状态</th>
+              <th>版本</th>
+              <th class="num">近 7 日调用</th>
+              <th class="num">成功率</th>
+              <th style="text-align:right">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="primary-cell">智能客服助手<span class="sub-cell">基于产品知识库回答使用问题</span></td>
+              <td>对话型</td>
+              <td class="mono">gpt-4o</td>
+              <td><span class="badge badge-live"><span class="dot dot-on"></span>运行中</span></td>
+              <td class="mono">v1.2</td>
+              <td class="num">1,240</td>
+              <td class="num">96.8%</td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:update" data-agent-action="编辑">编辑</button>
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:publish" data-agent-action="发布新版本">发布</button>
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:test" data-agent-action="对话测试">测试</button>
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:update" data-agent-action="停止运行">停止</button>
+                  <button class="btn btn-sm btn-danger" data-perm="agent:delete" data-agent-action="删除">删除</button>
+                  <span class="badge badge-neutral" data-role-only="viewer">只读</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="primary-cell">代码审查助手<span class="sub-cell">从正确性、性能、安全、可读性四个维度审查</span></td>
+              <td>分析型</td>
+              <td class="mono">deepseek-coder</td>
+              <td><span class="badge badge-live"><span class="dot dot-on"></span>运行中</span></td>
+              <td class="mono">v1.0</td>
+              <td class="num">568</td>
+              <td class="num">92.3%</td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:update" data-agent-action="编辑">编辑</button>
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:publish" data-agent-action="发布新版本">发布</button>
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:test" data-agent-action="对话测试">测试</button>
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:update" data-agent-action="停止运行">停止</button>
+                  <button class="btn btn-sm btn-danger" data-perm="agent:delete" data-agent-action="删除">删除</button>
+                  <span class="badge badge-neutral" data-role-only="viewer">只读</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="primary-cell">营销文案生成器<span class="sub-cell">根据产品信息生成推广文案</span></td>
+              <td>创作型</td>
+              <td class="mono">qwen-plus</td>
+              <td><span class="badge badge-live"><span class="dot dot-on"></span>运行中</span></td>
+              <td class="mono">v1.1</td>
+              <td class="num">320</td>
+              <td class="num">88.5%</td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:update" data-agent-action="编辑">编辑</button>
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:publish" data-agent-action="发布新版本">发布</button>
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:test" data-agent-action="对话测试">测试</button>
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:update" data-agent-action="停止运行">停止</button>
+                  <button class="btn btn-sm btn-danger" data-perm="agent:delete" data-agent-action="删除">删除</button>
+                  <span class="badge badge-neutral" data-role-only="viewer">只读</span>
+                </div>
+              </td>
+            </tr>
+            <tr class="is-disabled">
+              <td class="primary-cell">数据分析助手<span class="sub-cell">解读数据并生成业务洞察</span></td>
+              <td>分析型</td>
+              <td class="mono">claude-3-5-sonnet</td>
+              <td><span class="badge badge-draft"><span class="dot" style="background:#8a8f7f"></span>草稿</span></td>
+              <td class="mono">v0.1</td>
+              <td class="num">—</td>
+              <td class="num">—</td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:update" data-agent-action="编辑">编辑</button>
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:publish" data-agent-action="发布首个版本">发布</button>
+                  <button class="btn btn-sm btn-ghost" data-perm="agent:test" data-agent-action="对话测试">测试</button>
+                  <button class="btn btn-sm btn-danger" data-perm="agent:delete" data-agent-action="删除">删除</button>
+                  <span class="badge badge-neutral" data-role-only="viewer">只读</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-foot">
+        <span>显示 1–4 条，共 4 条</span>
+        <div class="pager" aria-label="分页">
+          <button disabled>上一页</button>
+          <button class="active">1</button>
+          <button disabled>下一页</button>
+        </div>
+      </div>
+
+      <footer class="page-foot">
+        <span>辰光 Agent · RBAC 授权原型 · 2026-10-25</span>
+        <span>按钮权限矩阵见设计说明书 5.3</span>
+      </footer>
+    </main>
+  </div>
+</div>
+<div class="overlay"></div>
+<script src="assets/prototype.js"></script>
+</body>
+</html>

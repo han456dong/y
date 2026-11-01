@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 · 辰光 Agent RBAC 原型</title>
+<link rel="stylesheet" href="assets/prototype.css">
+</head>
+<body data-page="login" data-default-role="admin">
+<div class="login-page">
+  <aside class="login-aside">
+    <div>
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">辰</div>
+        <div class="brand-text">
+          <div class="brand-name">辰光 Agent</div>
+          <div class="brand-sub">授权中枢 · RBAC</div>
+        </div>
+      </div>
+
+      <h1 class="login-statement">每一次点击，都在授权范围之内。</h1>
+      <p class="login-lede">
+        辰光 Agent 把权限做成一本可读的账簿：角色决定你能看到什么、能做什么。
+        登录后，菜单、路由与按钮会按你的授权范围收敛。
+      </p>
+
+      <div class="login-ledger" aria-hidden="true">
+        <div class="login-ledger-row">
+          <span>工作台</span>
+          <span class="marks"><i class="on"></i></span>
+        </div>
+        <div class="login-ledger-row">
+          <span>Agent 管理</span>
+          <span class="marks"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>
+        </div>
+        <div class="login-ledger-row">
+          <span>知识库</span>
+          <span class="marks"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>
+        </div>
+        <div class="login-ledger-row">
+          <span>系统管理</span>
+          <span class="marks"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        </div>
+      </div>
+    </div>
+    <div class="login-aside-foot">
+      原型演示 · 2026-10-25 · 依据 docs/spec/PROJECT_SPEC_V2.md
+    </div>
+  </aside>
+
+  <section class="login-panel">
+    <form class="login-form" id="login-form">
+      <h1>登录控制台</h1>
+      <p class="login-sub">使用演示身份进入，或输入你自己的账号。</p>
+
+      <div class="field">
+        <label for="login-username">用户名</label>
+        <input class="input" id="login-username" value="admin" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="login-password">密码</label>
+        <input class="input" id="login-password" type="password" value="123456" autocomplete="current-password" required>
+      </div>
+      <div class="field">
+        <label for="login-captcha">验证码</label>
+        <div class="captcha-row">
+          <input class="input" id="login-captcha" placeholder="输入右侧 4 位字符" autocomplete="off" required>
+          <button class="captcha-img" type="button" id="refresh-captcha" title="点击刷新验证码">
+            <span id="captcha-code">7K3M</span>
+          </button>
+        </div>
+        <span class="field-hint">原型中验证码仅作视觉占位，点击可刷新。</span>
+      </div>
+
+      <button class="btn btn-primary login-submit" type="submit">进入控制台</button>
+
+      <div class="demo-identities">
+        <div class="di-label">演示身份</div>
+        <div class="identity-choices">
+          <button class="identity-choice active" type="button" data-login-role="admin">
+            <div class="ic-name">管理员</div>
+            <div class="ic-desc">63 项权限</div>
+          </button>
+          <button class="identity-choice" type="button" data-login-role="operator">
+            <div class="ic-name">运营</div>
+            <div class="ic-desc">27 项权限</div>
+          </button>
+          <button class="identity-choice" type="button" data-login-role="viewer">
+            <div class="ic-name">只读</div>
+            <div class="ic-desc">9 项权限</div>
+          </button>
+        </div>
+      </div>
+
+      <p class="login-foot">
+        进入后可在右上角随时切换演示身份。切换会重新加载页面，并让菜单与按钮按新权限收敛。
+      </p>
+    </form>
+  </section>
+</div>
+<script src="assets/prototype.js"></script>
+</body>
+</html>

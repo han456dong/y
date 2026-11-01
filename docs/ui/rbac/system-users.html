@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用户管理 · 辰光 Agent RBAC 原型</title>
+<link rel="stylesheet" href="assets/prototype.css">
+</head>
+<body data-page="users" data-crumb="系统管理 / 用户管理">
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="page" data-required="system.user:read">
+
+      <div class="guard-state">
+        <section class="centered-state">
+          <div class="state-card">
+            <div class="state-code">403</div>
+            <h1 class="state-title">这个页面不在你的授权范围内。</h1>
+            <p class="state-text">你当前的身份是 <span class="js-role-label">运营人员</span>。用户管理属于系统管理，需要额外的授权，请联系管理员。</p>
+            <div class="state-actions">
+              <a class="btn btn-primary" href="dashboard.html">返回工作台</a>
+              <a class="btn btn-secondary" href="forbidden.html">查看完整 403 页面</a>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="guarded-content">
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">用户管理</h1>
+            <p class="page-sub">24 个账号 · 21 个启用 · 1 个超级管理员。角色决定用户的有效权限。</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-primary" data-open="add-user-modal" data-perm="system.user:create">添加用户</button>
+          </div>
+        </div>
+
+        <div class="stat-strip">
+          <div class="stat">
+            <div class="stat-value">24</div>
+            <div class="stat-label">用户总数</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">21</div>
+            <div class="stat-label">启用中</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">3</div>
+            <div class="stat-label">已停用</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">1</div>
+            <div class="stat-label">超级管理员</div>
+          </div>
+        </div>
+
+        <div class="notice notice-gold">
+          <svg class="notice-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2L12 3z"/><path d="M12 9v5M12 17h.01"/></svg>
+          <div>
+            <span class="notice-title">角色变更并非立即生效于已打开的页面。</span>
+            保存后，受影响用户最迟 10 分钟内生效；刷新页面可立即拉取新权限。停用账号会让其 Token 在下一次请求时失效。
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5"/></svg>
+            <input class="input" type="search" placeholder="搜索用户名或邮箱" aria-label="搜索用户">
+          </div>
+          <select class="select" aria-label="角色筛选">
+            <option>全部角色</option>
+            <option>超级管理员</option>
+            <option>运营人员</option>
+            <option>只读观察员</option>
+            <option>数据分析师</option>
+          </select>
+          <select class="select" aria-label="状态筛选">
+            <option>全部状态</option>
+            <option>启用</option>
+            <option>已停用</option>
+          </select>
+          <span class="spacer"></span>
+          <span class="section-note">当前身份 <b class="js-role-short">管理员</b></span>
+        </div>
+
+        <div class="table-wrap">
+          <table class="ledger">
+            <thead>
+              <tr>
+                <th>用户</th>
+                <th>邮箱</th>
+                <th>角色</th>
+                <th>状态</th>
+                <th>最后登录</th>
+                <th style="text-align:right">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="is-self" data-name="陈晓">
+                <td class="primary-cell">
+                  陈晓 <span class="badge badge-system">本人</span>
+                  <span class="sub-cell">chen.xiao · 超级管理员</span>
+                </td>
+                <td class="mono">chen.xiao@chenguang.ai</td>
+                <td><span class="role-tag is-system">超级管理员</span></td>
+                <td><span class="badge badge-live"><span class="dot dot-on"></span>启用</span></td>
+                <td>刚刚</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" disabled title="不能修改自己的角色">分配角色</button>
+                    <button class="btn btn-sm btn-ghost" disabled title="不能停用自己">停用</button>
+                    <button class="btn btn-sm btn-danger" disabled title="不能删除自己">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-name="李明">
+                <td class="primary-cell">
+                  李明
+                  <span class="sub-cell">li.ming · 运营人员</span>
+                </td>
+                <td class="mono">li.ming@chenguang.ai</td>
+                <td><span class="role-tag">运营人员</span></td>
+                <td><span class="badge badge-live"><span class="dot dot-on"></span>启用</span></td>
+                <td>12 分钟前</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm="system.user:assign" data-assign-user data-roles="operator">分配角色</button>
+                    <button class="btn btn-sm btn-ghost" data-perm="system.user:update" data-user-action="停用账号">停用</button>
+                    <button class="btn btn-sm btn-danger" data-perm="system.user:delete" data-user-action="删除用户">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-name="王芳">
+                <td class="primary-cell">
+                  王芳
+                  <span class="sub-cell">wang.fang · 只读观察员</span>
+                </td>
+                <td class="mono">wang.fang@chenguang.ai</td>
+                <td><span class="role-tag">只读观察员</span></td>
+                <td><span class="badge badge-live"><span class="dot dot-on"></span>启用</span></td>
+                <td>1 小时前</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm="system.user:assign" data-assign-user data-roles="viewer">分配角色</button>
+                    <button class="btn btn-sm btn-ghost" data-perm="system.user:update" data-user-action="停用账号">停用</button>
+                    <button class="btn btn-sm btn-danger" data-perm="system.user:delete" data-user-action="删除用户">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-name="赵敏">
+                <td class="primary-cell">
+                  赵敏
+                  <span class="sub-cell">zhao.min · 数据分析师</span>
+                </td>
+                <td class="mono">zhao.min@chenguang.ai</td>
+                <td><span class="role-tag">数据分析师</span></td>
+                <td><span class="badge badge-live"><span class="dot dot-on"></span>启用</span></td>
+                <td>昨天 18:42</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm="system.user:assign" data-assign-user data-roles="analyst">分配角色</button>
+                    <button class="btn btn-sm btn-ghost" data-perm="system.user:update" data-user-action="停用账号">停用</button>
+                    <button class="btn btn-sm btn-danger" data-perm="system.user:delete" data-user-action="删除用户">删除</button>
+                  </div>
+                </td>
+              </tr>
+              <tr data-name="周航">
+                <td class="primary-cell">
+                  周航
+                  <span class="sub-cell">zhou.hang · 运营人员</span>
+                </td>
+                <td class="mono">zhou.hang@chenguang.ai</td>
+                <td><span class="role-tag">运营人员</span></td>
+                <td><span class="badge badge-off"><span class="dot dot-off"></span>已停用</span></td>
+                <td>3 天前</td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn btn-sm btn-ghost" data-perm="system.user:assign" data-assign-user data-roles="operator">分配角色</button>
+                    <button class="btn btn-sm btn-ghost" data-perm="system.user:update" data-user-action="启用账号">启用</button>
+                    <button class="btn btn-sm btn-danger" data-perm="system.user:delete" data-user-action="删除用户">删除</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-foot">
+          <span>显示 1–5 条，共 24 条</span>
+          <div class="pager" aria-label="分页">
+            <button disabled>上一页</button>
+            <button class="active">1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>下一页</button>
+          </div>
+        </div>
+
+        <footer class="page-foot">
+          <span>辰光 Agent · RBAC 授权原型 · 2026-10-25</span>
+          <span>自我保护规则见设计说明书 5.4</span>
+        </footer>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 分配角色抽屉 -->
+<aside class="drawer" id="assign-drawer" role="dialog" aria-modal="true" aria-labelledby="assign-title">
+  <div class="drawer-head">
+    <div>
+      <div class="drawer-title" id="assign-title">分配角色</div>
+      <div class="drawer-sub"><span id="assign-user-name">李明</span> · 角色可多选，保存后整体替换</div>
+    </div>
+    <button class="icon-close" type="button" data-close aria-label="关闭">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <div class="notice notice-gold">
+      <svg class="notice-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2L12 3z"/><path d="M12 9v5M12 17h.01"/></svg>
+      <div>用户的有效权限是所选角色的并集。<b>admin</b> 角色只允许超级管理员分配。</div>
+    </div>
+    <div class="check-list">
+      <label class="check-row">
+        <input type="checkbox" value="admin" data-label="超级管理员">
+        <div>
+          <div class="cr-title">超级管理员 <span class="role-tag is-system">内置</span></div>
+          <div class="cr-desc">拥有全部 63 项权限，并可绕过权限码校验。<span class="cr-role-code">admin</span></div>
+        </div>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" value="operator" data-label="运营人员" checked>
+        <div>
+          <div class="cr-title">运营人员 <span class="role-tag is-system">内置</span></div>
+          <div class="cr-desc">业务模块的查看、创建、编辑、发布与测试，不含删除。<span class="cr-role-code">operator</span></div>
+        </div>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" value="viewer" data-label="只读观察员">
+        <div>
+          <div class="cr-title">只读观察员 <span class="role-tag is-system">内置</span></div>
+          <div class="cr-desc">所有业务模块只读，写入入口不会出现。<span class="cr-role-code">viewer</span></div>
+        </div>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" value="analyst" data-label="数据分析师">
+        <div>
+          <div class="cr-title">数据分析师 <span class="role-tag">自定义</span></div>
+          <div class="cr-desc">对话日志与数据统计的查看、标注与导出。<span class="cr-role-code">analyst</span></div>
+        </div>
+      </label>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-secondary" type="button" data-close>取消</button>
+    <button class="btn btn-primary" type="button" id="save-assign">保存角色</button>
+  </div>
+</aside>
+
+<!-- 添加用户弹窗 -->
+<div class="modal" id="add-user-modal" role="dialog" aria-modal="true" aria-labelledby="add-user-title">
+  <form id="add-user-form">
+    <div class="modal-head">
+      <div>
+        <div class="drawer-title" id="add-user-title">添加用户</div>
+        <div class="drawer-sub">创建后需要在列表中分配角色</div>
+      </div>
+      <button class="icon-close" type="button" data-close aria-label="关闭">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label for="new-username">用户名</label>
+          <input class="input" id="new-username" required placeholder="如: zhang.san">
+        </div>
+        <div class="field">
+          <label for="new-email">邮箱</label>
+          <input class="input" id="new-email" type="email" required placeholder="name@chenguang.ai">
+        </div>
+        <div class="field full">
+          <label for="new-password">初始密码</label>
+          <input class="input" id="new-password" type="password" required placeholder="至少 8 位">
+          <span class="field-hint">用户首次登录后应修改密码。</span>
+        </div>
+      </div>
+      <div class="notice">
+        <svg class="notice-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+        <div>新用户默认没有任何角色，只能访问需要登录的接口。请在创建后分配角色。</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" type="button" data-close>取消</button>
+      <button class="btn btn-primary" type="submit">创建用户</button>
+    </div>
+  </form>
+</div>
+
+<div class="overlay"></div>
+<script src="assets/prototype.js"></script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RBAC 授权原型 · 辰光 Agent</title>
+<link rel="stylesheet" href="assets/prototype.css">
+</head>
+<body data-page="index" data-default-role="admin">
+<main class="cover">
+  <div class="cover-top">
+    <div class="cover-wordmark">
+      <div class="brand-mark" aria-hidden="true">辰</div>
+      <div>
+        <div class="brand-name" style="color:var(--ink)">辰光 Agent</div>
+        <div class="brand-sub" style="color:var(--muted)">授权中枢 · RBAC 原型</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <div class="demo-switch" title="切换身份，观察菜单与按钮如何收敛">
+        <span class="demo-switch-label">演示身份</span>
+        <div class="role-seg" role="group" aria-label="切换演示身份">
+          <button type="button" data-role-btn="admin">管理员</button>
+          <button type="button" data-role-btn="operator">运营</button>
+          <button type="button" data-role-btn="viewer">只读</button>
+        </div>
+      </div>
+      <div class="cover-meta">RBAC 原型 · v1.0<br>2026-10-25</div>
+    </div>
+  </div>
+
+  <section class="cover-hero">
+    <div>
+      <h1 class="cover-title">授权，<br>应该看得见。</h1>
+      <p class="cover-sub">
+        辰光 Agent 的 RBAC 授权原型。三种身份、八个页面，
+        菜单、路由与按钮随权限收敛；被隐藏的操作，可以用「权限透视」看见。
+      </p>
+    </div>
+    <div class="cover-note">
+      <b>怎么看这套原型</b><br>
+      右上角切换管理员 / 运营 / 只读，页面会重新加载。
+      观察侧边栏、页面按钮与 403 状态如何随身份变化。
+      顶部「权限透视」会把被隐藏的操作以斜纹显示出来。
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="compare-title">
+    <div class="section-head">
+      <h2 class="section-title" id="compare-title">三种身份，同一套界面</h2>
+      <span class="section-note">数量来自内置角色权限矩阵</span>
+    </div>
+    <table class="role-compare">
+      <thead>
+        <tr>
+          <th style="width:190px">模块</th>
+          <th data-compare-role="admin">管理员</th>
+          <th data-compare-role="operator">运营</th>
+          <th data-compare-role="viewer">只读</th>
+        </tr>
+      </thead>
+      <tbody id="compare-rows"></tbody>
+    </table>
+    <div class="matrix-legend" style="margin-top:12px">
+      <span><i class="legend-mark on"></i>已授予</span>
+      <span><i class="legend-mark"></i>未授予</span>
+      <span style="margin-left:auto">管理员 63 / 运营 27 / 只读 9</span>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="toc-title">
+    <div class="section-head">
+      <h2 class="section-title" id="toc-title">页面目录</h2>
+      <span class="section-note">静态页面位于 docs/ui/rbac</span>
+    </div>
+    <div class="toc">
+      <a class="toc-item" href="login.html">
+        <span class="toc-num">01</span>
+        <span class="toc-name">登录</span>
+        <span class="toc-desc">选择演示身份，验证码登录；进入后权限开始生效。</span>
+        <span class="toc-link">打开</span>
+      </a>
+      <a class="toc-item" href="dashboard.html">
+        <span class="toc-num">02</span>
+        <span class="toc-name">工作台</span>
+        <span class="toc-desc">我的授权范围、未授予操作与授权变更记录。</span>
+        <span class="toc-link">打开</span>
+      </a>
+      <a class="toc-item" href="agents.html">
+        <span class="toc-num">03</span>
+        <span class="toc-name">Agent 管理</span>
+        <span class="toc-desc">按钮级收敛：管理员能删，运营不能删，只读看不到写操作。</span>
+        <span class="toc-link">打开</span>
+      </a>
+      <a class="toc-item" href="system-users.html">
+        <span class="toc-num">04</span>
+        <span class="toc-name">用户管理</span>
+        <span class="toc-desc">角色分配、账号启停、自我保护与最后超管保护。</span>
+        <span class="toc-link">打开</span>
+      </a>
+      <a class="toc-item" href="system-roles.html">
+        <span class="toc-num">05</span>
+        <span class="toc-name">角色管理</span>
+        <span class="toc-desc">权限账簿：模块 × 操作矩阵，支持整组勾选与三态。</span>
+        <span class="toc-link">打开</span>
+      </a>
+      <a class="toc-item" href="system-permissions.html">
+        <span class="toc-num">06</span>
+        <span class="toc-name">权限管理</span>
+        <span class="toc-desc">模块筛选、内置保护、权限码格式校验与创建。</span>
+        <span class="toc-link">打开</span>
+      </a>
+      <a class="toc-item" href="forbidden.html">
+        <span class="toc-num">07</span>
+        <span class="toc-name">403</span>
+        <span class="toc-desc">路由守卫的落地页；不暴露所需权限码。</span>
+        <span class="toc-link">打开</span>
+      </a>
+      <a class="toc-item" href="permission-error.html">
+        <span class="toc-num">08</span>
+        <span class="toc-name">权限加载失败</span>
+        <span class="toc-desc">默认拒绝状态：没有菜单，没有放行，只有重试。</span>
+        <span class="toc-link">打开</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="assets-title">
+    <div class="section-head">
+      <h2 class="section-title" id="assets-title">产物说明</h2>
+      <span class="section-note">两套产物</span>
+    </div>
+    <div class="module-row" style="grid-template-columns:180px 1fr">
+      <div class="module-name">静态页面</div>
+      <div style="color:var(--muted)">8 个 HTML 页面 + 1 个封面索引，共享 <span class="mono">assets/prototype.css</span> 与 <span class="mono">assets/prototype.js</span>，无构建步骤。</div>
+    </div>
+    <div class="module-row" style="grid-template-columns:180px 1fr">
+      <div class="module-name">图片产物</div>
+      <div style="color:var(--muted)">位于 <span class="mono">docs/ui/rbac/images/</span>，与页面一一对应，并包含三种身份下的 Agent 列表对照图。</div>
+    </div>
+    <div class="module-row" style="grid-template-columns:180px 1fr">
+      <div class="module-name">设计说明书</div>
+      <div style="color:var(--muted)"><a class="linkish" href="../../design/ui/RBACPrototypeDesign.md">docs/design/ui/RBACPrototypeDesign.md</a>：设计语言、页面结构与交互规格。</div>
+    </div>
+  </section>
+
+  <footer class="page-foot">
+    <span>辰光 Agent · RBAC 授权原型 · 2026-10-25</span>
+    <span>依据 docs/spec/PROJECT_SPEC_V2.md 生成</span>
+  </footer>
+</main>
+<script src="assets/prototype.js"></script>
+</body>
+</html>
