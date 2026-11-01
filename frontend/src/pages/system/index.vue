@@ -97,7 +97,7 @@ const modules = computed(() => [
   {
     path: '/system/user',
     title: '用户管理',
-    description: '创建账号、查看用户详情，并为用户分配角色。',
+    description: '创建账号、启用/禁用、删除用户，并为用户分配角色。',
     icon: User,
     countLabel: `${rbacStore.stats.users} 位用户`,
     tagType: 'primary' as const,
@@ -105,7 +105,7 @@ const modules = computed(() => [
   {
     path: '/system/role',
     title: '角色管理',
-    description: '维护角色定义，配置角色所拥有的权限集合。',
+    description: '维护角色定义，通过权限矩阵配置角色权限集合。',
     icon: Avatar,
     countLabel: `${rbacStore.stats.roles} 个角色`,
     tagType: 'warning' as const,
@@ -113,18 +113,10 @@ const modules = computed(() => [
   {
     path: '/system/permission',
     title: '权限管理',
-    description: '维护权限编码与说明，按模块分类管理访问控制点。',
+    description: '维护 63 条权限码，按 16 个模块分类管理访问控制点。',
     icon: Key,
     countLabel: `${rbacStore.stats.permissions} 项权限`,
     tagType: 'success' as const,
-  },
-  {
-    path: '/system/department',
-    title: '部门管理',
-    description: '组织架构维护（接口规划中，当前为占位页面）。',
-    icon: Grid,
-    countLabel: '规划中',
-    tagType: 'info' as const,
   },
 ])
 

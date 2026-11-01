@@ -1,243 +1,269 @@
-# RBAC 模块 Mock 测试报告
+# RBAC 模块 Mock 测试报告（V2 授权增强版）
 
 > 项目：辰光Agent平台 — 管理后台前端（Vue 3 + TypeScript）
-> 模块：RBAC（用户 / 角色 / 权限 / 认证 / 验证码）
-> 接口契约：`docs/openapi.json`（`/api/v1/*`）
+> 模块：RBAC（认证 / 验证码 / 用户 / 角色 / 权限 / 权限上下文 / 权限树）
+> 实现计划：[rbac-plan.md](file:///C:/Users/%E6%98%93%E6%99%BA%E6%88%90/Desktop/chenguang-agent-platform-v4/docs/design/plans/rbac-plan.md)
+> PRD：`PROJECT_SPEC_V2.md`（RBAC 授权能力增强版）
 > 设计输入：`docs/PROJECT_SPEC.md`、`docs/ui/v9_system.html`、`docs/design/ui/ChenguangAgentDesign.md`
-> 测试框架：Vitest 5 + MSW 3 + jsdom
+> 测试框架：Vitest 5 + MSW 3 + jsdom + @vue/test-utils
 > 测试日期：2026-11-01
 > 执行命令：`npm run test:coverage`
 
 ---
 
-## 一、说明：关于 rbac-plan.md
+## 一、测试目标与依据
 
-本次任务要求的 `rbac-plan.md` 在工作区（`D:\v2`）及相邻项目目录中均未找到。
-为避免阻塞交付，RBAC 模块按以下已存在的权威资料实现，并在本报告中明确记录：
+本模块依据用户提供的 `rbac-plan.md` 与 PRD V2 重构，核心是把上一版的「数据维护」升级为完整的「授权能力」：
 
-| 输入 | 位置 | 用途 |
-|---|---|---|
-| PRD / 项目说明书 | `docs/PROJECT_SPEC.md` | 模块边界、页面要求、Mock 约定 |
-| OpenAPI 契约 | `docs/openapi.json` | 全部端点、请求/响应 Schema（唯一接口事实来源） |
-| UI 原型 | `docs/ui/v9_system.html` | 系统管理页布局与卡片结构 |
-| 设计规范 | `docs/design/ui/ChenguangAgentDesign.md` | 配色、交互、可访问性 |
-| 参考实现 | `chenguang-agent-platform-v4`（React 版） | 页面交互流程与权限分组方式 |
-
-若后续提供 `rbac-plan.md`，可据此报告快速比对差异并补充用例。
-
----
-
-## 二、测试目标与范围
-
-| 层 | 验证内容 |
+| 目标 | 对应 PRD / Plan |
 |---|---|
-| apis | 23 个 RBAC 端点的请求路径、方法、参数、响应解包、错误码 |
-| services | 认证业务、用户/角色/权限的列表、分页、搜索、CRUD、授权编排 |
-| store | 登录态、权限/角色同步、角色与权限选项缓存、概览统计 |
-| router | 动态路由权限过滤、受限父路由可见性 |
-| mocks | 23 个端点的 MSW 处理器、数据一致性（删除角色/权限的级联同步） |
+| 63 条权限目录 / 16 个模块，权限码 `模块:操作` | PRD 4.2 / 4.4，Plan Task 2 |
+| 3 个内置角色矩阵（admin 63 / operator 27 / viewer 9） | PRD 4.5，Plan Task 2 |
+| 当前用户权限上下文 `GET /users/me/permissions` | PRD 7.2.1，Plan Task 6 |
+| 权限树 `GET /permissions/tree` | PRD 7.2.2，Plan Task 6 |
+| 用户启停、编辑、删除与安全边界 | PRD 7.2.3 / 8.4，Plan Task 10 / 11 |
+| 前端权限状态（内存态、不落 localStorage） | PRD 8.1 / D12，Plan Task 8 |
+| 菜单 / 路由 / 按钮按权限收敛、403 页 | PRD 8.2–8.4，Plan Task 9 |
+| 角色权限树、内置保护、权限格式校验 | PRD 8.5–8.6，Plan Task 10 |
+| 401/403 语义化与业务错误码 | PRD 7.1，Plan Global Constraints |
 
-**不含**：浏览器端 E2E（当前环境未安装 Playwright 浏览器内核），但已完成开发服务器 HTTP 冒烟。
+**不在本期范围**：后端 FastAPI/Redis 实现、63 条权限的数据库迁移、审计日志接口（Plan 的 Task 1/3/4/5/7/11/12 属于后端）。
+本报告验收的是「前端 RBAC 模块 + Mock 契约」部分。
 
 ---
 
-## 三、实现范围
+## 二、实现范围
 
-### 3.1 代码结构
+### 2.1 前端结构
 
 ```
 frontend/src/
 ├── apis/modules/
-│   ├── auth.ts          # 登录 + 验证码（3 个端点）
-│   └── rbac.ts          # 用户/角色/权限（20 个端点 + 类型 + 工具）
+│   ├── auth.ts          # 登录 + 验证码（3 端点）
+│   └── rbac.ts          # 用户/角色/权限/权限上下文/权限树（24 端点 + 类型 + 校验）
 ├── services/
-│   ├── auth.ts          # 登录态、权限推导、登出
+│   ├── auth.ts          # 登录态（仅 Token 持久化）
 │   └── rbac/
 │       ├── base.ts      # 分页列表基类（加载/错误/分页/搜索）
-│       ├── user.ts      # 用户列表、创建、详情、角色分配
-│       ├── role.ts      # 角色 CRUD、权限分配、按模块分组
-│       └── permission.ts# 权限 CRUD、模块统计
+│       ├── user.ts      # 列表、创建、更新、启停、删除、角色分配
+│       ├── role.ts      # CRUD、权限矩阵分配、模块分组
+│       └── permission.ts# CRUD、权限树、模块筛选与统计
 ├── store/modules/
-│   ├── auth.ts          # 登录态与菜单权限
-│   └── rbac.ts          # 角色/权限选项缓存 + 概览统计
+│   ├── auth.ts          # 用户/角色；权限判断委托 permissionStore
+│   ├── permission.ts    # 权限上下文（PRD 8.1）：loading/error/permissions/isSuperuser/roles/version
+│   └── rbac.ts          # 角色/权限选项缓存、权限树缓存、概览统计
+├── components/common/
+│   └── Can.vue          # 声明式权限组件（any/all + fallback）
+├── router/
+│   ├── routes.ts        # 路由权限码对齐 V2；新增 /system/overview
+│   └── index.ts         # 守卫：用户信息 → 权限加载 → 动态路由 → 403
 ├── pages/system/
-│   ├── index.vue        # 系统概览（统计卡片 + 模块入口 + RBAC 模型说明）
-│   ├── user/index.vue   # 用户管理（搜索/分页/创建/详情/分配角色/导出）
-│   ├── role/index.vue   # 角色管理（搜索/分页/CRUD/按模块分配权限）
-│   └── permission/index.vue # 权限管理（搜索/分页/CRUD/模块标签/统计）
-├── mocks/
-│   ├── data.ts          # RBAC 内存数据、验证码、分页与重置
-│   └── handlers.ts      # 23 个端点处理器 + 级联一致性
-└── router/routes.ts     # /system/overview 新增；RBAC 权限元数据
+│   ├── index.vue        # 系统概览（统计 + 模块入口 + RBAC 模型）
+│   ├── user/index.vue   # 角色列、启停（自我保护）、编辑、删除、分配角色
+│   ├── role/index.vue   # 权限树（模块分组/三态/搜索）、内置角色保护
+│   └── permission/index.vue # 模块筛选、内置标记、权限码格式校验
+└── mocks/
+    ├── data.ts          # 63 条目录、3 内置角色、权限树、验证码、版本号
+    └── handlers.ts      # 27 个端点 + 接口鉴权 + 安全边界 + 业务错误码
 ```
 
-### 3.2 与 OpenAPI 的对齐说明
+### 2.2 关键设计决策
 
-- 登录改为 `POST /api/v1/auth/login`，请求体包含 `captcha_key` / `captcha_code`（PRD 要求验证码）。
-- 验证码使用 `GET /api/v1/captcha`（返回 `key` + `image`）与 `POST /api/v1/captcha`（校验）。
-- 用户接口按契约仅提供 **列表 / 搜索 / 创建 / 详情 / 角色查询 / 角色分配**；
-  OpenAPI 未定义用户删除与资料修改，因此界面未提供这两个操作（避免调用不存在的接口）。
-- 角色与权限接口提供完整 CRUD 与授权。
-- 所有列表接口返回统一 `{ code, message, data }`，由 Axios 拦截器解包。
+| 决策 | 说明 |
+|---|---|
+| 权限不落 localStorage | D12：登录只持久化 Token；权限由 `/users/me/permissions` 每次启动拉取 |
+| 登录响应扩展 user | 后端 `TokenResponse` 不变，前端在 Mock 中附加 user（含 roles/is_superuser），权限码不随登录下发（D6） |
+| 前端鉴权与后端一致 | Mock 对每个端点校验 Token、账号状态与权限码，便于验证 401/403 语义 |
+| 内置角色保护 | `admin` 角色权限固定 63 条不可缩减；内置角色不可删除；权限删除受 `is_system` 保护 |
+| 安全边界（Mock 实现） | 40302 自提权 / 40303 内置保护 / 40304 自我操作 / 40305 最后超管 / 40306 角色使用中 |
+| 用户接口 | 按 V2 补齐 `PUT /users/{id}` 与 `DELETE /users/{id}`（7.2.3 / 7.4） |
 
 ---
 
-## 四、全 API 覆盖矩阵（23/23）
+## 三、全 API 覆盖矩阵（27/27）
 
-> ✅ = 已覆盖，且用例通过。错误场景单列。
+> ✅ = 覆盖且通过；异常列列出已断言的状态/业务码。
 
-| # | 方法 | 端点 | 成功用例 | 异常用例 | 结果 |
-|---|---|---|---|---|---|
-| 1 | POST | `/api/v1/auth/login` | 登录成功返回 token + 用户 + 权限 | 密码错误 401 / 用户不存在 401 / 缺验证码 400 / 验证码错误 400 / 禁用账号 403 | ✅ |
-| 2 | GET | `/api/v1/captcha` | 返回 key 与 SVG 图片 | — | ✅ |
-| 3 | POST | `/api/v1/captcha` | 正确码返回 true | 错误码 false / 参数缺失 400 / 一次性失效 | ✅ |
-| 4 | GET | `/api/v1/users` | offset/limit 切片正确 | — | ✅ |
-| 5 | GET | `/api/v1/users/search` | 分页 + 关键词过滤 | — | ✅ |
-| 6 | POST | `/api/v1/users` | 创建成功并进入列表 | 重复用户名 400 / 缺字段 400 | ✅ |
-| 7 | GET | `/api/v1/users/me` | 携带令牌返回当前用户 | 未授权 401 | ✅ |
-| 8 | GET | `/api/v1/users/{id}` | 返回用户及角色 | 不存在 404 | ✅ |
-| 9 | GET | `/api/v1/users/{id}/roles` | 返回角色列表 | 用户不存在 404 | ✅ |
-| 10 | PUT | `/api/v1/users/{id}/roles` | 分配多角色 / 空数组清空 | 非法角色 400 / 用户不存在 404 | ✅ |
-| 11 | GET | `/api/v1/roles/` | 返回全部角色（含权限） | — | ✅ |
-| 12 | GET | `/api/v1/roles/search` | 分页 + 关键词 | — | ✅ |
-| 13 | POST | `/api/v1/roles` | 创建角色 | 重复编码 400 / 缺字段 400 | ✅ |
-| 14 | GET | `/api/v1/roles/{id}` | 返回角色详情 | 不存在 404 | ✅ |
-| 15 | PUT | `/api/v1/roles/{id}` | 更新名称/描述 | 不存在 404 | ✅ |
-| 16 | DELETE | `/api/v1/roles/{id}` | 删除并从用户身上级联移除 | 不存在 404 | ✅ |
-| 17 | PUT | `/api/v1/roles/{id}/permissions` | 分配权限集合 | 非法权限 400 | ✅ |
-| 18 | GET | `/api/v1/permissions/` | 返回全部权限 | — | ✅ |
-| 19 | GET | `/api/v1/permissions/search` | 分页 + 关键词 | — | ✅ |
-| 20 | POST | `/api/v1/permissions` | 创建权限 | 重复编码 400 / 缺字段 400 | ✅ |
-| 21 | GET | `/api/v1/permissions/{id}` | 返回权限详情 | 不存在 404 | ✅ |
-| 22 | PUT | `/api/v1/permissions/{id}` | 更新并同步角色内引用 | 不存在 404 | ✅ |
-| 23 | DELETE | `/api/v1/permissions/{id}` | 删除并从角色中级联移除 | 不存在 404 | ✅ |
+| # | 方法 | 端点 | 权限 | 成功用例 | 异常/边界用例 | 结果 |
+|---|---|---|---|---|---|---|
+| 1 | POST | `/v1/auth/login` | 公开 | Token + 用户 | 密码错 401 / 不存在 401 / 缺验证码 400 / 验证码错 400 / 禁用 401(40101) | ✅ |
+| 2 | GET | `/v1/captcha` | 公开 | key + SVG 图片 | — | ✅ |
+| 3 | POST | `/v1/captcha` | 公开 | 正确码 true | 错误码 false / 一次性失效 / 缺参 400 | ✅ |
+| 4 | GET | `/v1/users/me` | 登录 | 当前用户 + 角色 | 无 Token 401 | ✅ |
+| 5 | GET | `/v1/users/me/permissions` | 登录 | 上下文含 63/27/9 条权限、版本号、cached_at | 权限按角色聚合（admin/operator/viewer） | ✅ |
+| 6 | GET | `/v1/users` | `system.user:read` | offset/limit 切片 | viewer 访问 403 | ✅ |
+| 7 | GET | `/v1/users/search` | `system.user:read` | 分页 + 关键词 | 未登录 401 / viewer 403 | ✅ |
+| 8 | POST | `/v1/users` | `system.user:create` | 创建成功、角色为空 | 重复用户名 400 / 缺字段 400 | ✅ |
+| 9 | GET | `/v1/users/{id}` | `system.user:read` | 详情 + 角色 | 不存在 404 | ✅ |
+| 10 | GET | `/v1/users/{id}/roles` | `system.user:read` | 精简角色（无 permissions） | — | ✅ |
+| 11 | PUT | `/v1/users/{id}` | `system.user:update` | 改邮箱 / 启用 | 邮箱重复 400 / 禁用自己 40304 | ✅ |
+| 12 | DELETE | `/v1/users/{id}` | `system.user:delete` | 删除普通用户 | 删除自己 40304 | ✅ |
+| 13 | PUT | `/v1/users/{id}/roles` | `system.user:assign` | 多角色分配 | 非法角色 400 / 清空自己角色 40304 / 自提权 40302 | ✅ |
+| 14 | GET | `/v1/roles/` | `system.role:read` | 4 角色、内置标记、user_count | — | ✅ |
+| 15 | GET | `/v1/roles/search` | `system.role:read` | 分页 + 关键词 | — | ✅ |
+| 16 | POST | `/v1/roles` | `system.role:create` | 创建自定义角色 | 重复编码 400 / 非法编码 400 | ✅ |
+| 17 | GET | `/v1/roles/{id}` | `system.role:read` | 详情（admin 63 条） | — | ✅ |
+| 18 | PUT | `/v1/roles/{id}` | `system.role:update` | 名称/描述更新 | — | ✅ |
+| 19 | DELETE | `/v1/roles/{id}` | `system.role:delete` | 删除未使用自定义角色 | 内置 40303 / 使用中 40306 | ✅ |
+| 20 | PUT | `/v1/roles/{id}/permissions` | `system.role:assign` | 分配权限集合 | admin 角色固定 40303 / 非法权限 400 | ✅ |
+| 21 | GET | `/v1/permissions/` | `system.permission:read` | 63 条 + 扩展字段 | — | ✅ |
+| 22 | GET | `/v1/permissions/tree` | `system.permission:read` | 16 模块分组、固定顺序、共 63 条 | viewer 403 | ✅ |
+| 23 | GET | `/v1/permissions/search` | `system.permission:read` | 分页 / 关键词 / 模块筛选 | — | ✅ |
+| 24 | POST | `/v1/permissions` | `system.permission:create` | 创建自定义权限 | 格式错误 400 / 重复编码 400 | ✅ |
+| 25 | GET | `/v1/permissions/{id}` | `system.permission:read` | 详情 | 不存在 404 | ✅ |
+| 26 | PUT | `/v1/permissions/{id}` | `system.permission:update` | 改名并同步角色 | — | ✅ |
+| 27 | DELETE | `/v1/permissions/{id}` | `system.permission:delete` | 删除自定义权限 | 内置 40303 / 不存在 404 | ✅ |
 
-**端点覆盖率：23/23 = 100%**（每个端点至少 1 条成功用例，核心写操作附带异常用例）
+**端点覆盖率：27/27 = 100%**
+
+### 鉴权 / 安全边界专项
+
+| 规则 | 用例 | 预期 |
+|---|---|---|
+| 未登录 | 访问受保护接口 | 401（40100） |
+| 账号禁用 | 禁用账号登录 | 401（40101） |
+| 缺少权限码 | viewer 访问用户管理 / operator 创建角色 | 403（40301） |
+| 自提权 | 非超管给自己分配 admin | 403（40302） |
+| 内置资源 | 删除内置角色 / 内置权限 / 修改 admin 角色权限 | 403（40303） |
+| 自我操作 | 禁用/删除自己、清空自己全部角色 | 403（40304） |
+| 最后超管 | 唯一超管被停用/删除 | 403（40305） |
+| 角色使用中 | 删除仍被用户使用的角色 | 403（40306） |
 
 ---
 
-## 五、测试执行结果
+## 四、测试执行结果
 
 ```
- Test Files  7 passed (7)
-      Tests  157 passed (157)
-   Duration  ~9.4s
+ Test Files  8 passed (8)
+      Tests  176 passed (176)
+   Duration  ~9.3s
 ```
 
 | 测试文件 | 覆盖对象 | 用例数 | 结果 |
 |---|---|---:|---|
-| `src/apis/__tests__/rbac.test.ts` | 全部 23 个 RBAC 端点 | 51 | ✅ |
+| `src/apis/__tests__/rbac.test.ts` | 27 个 RBAC 端点 + 鉴权/安全边界 | 63 | ✅ |
 | `src/apis/__tests__/request.test.ts` | Axios 请求方法封装 | 5 | ✅ |
 | `src/apis/__tests__/error.test.ts` | 拦截器错误码、请求头注入 | 7 | ✅ |
-| `src/services/__tests__/service.test.ts` | 认证 + 用户/角色/权限服务 | 38 | ✅ |
-| `src/store/__tests__/store.test.ts` | Auth / App / Settings / RBAC Store | 32 | ✅ |
+| `src/services/__tests__/service.test.ts` | 认证 + 用户/角色/权限服务 | 41 | ✅ |
+| `src/store/__tests__/store.test.ts` | Auth / Permission / App / Settings / RBAC Store | 30 | ✅ |
+| `src/components/__tests__/Can.test.ts` | `<Can>` 组件（any/all/fallback/超管） | 6 | ✅ |
 | `src/router/__tests__/router.test.ts` | 路由表与权限过滤 | 12 | ✅ |
 | `src/router/__tests__/guards.test.ts` | 路由守卫工具 | 12 | ✅ |
-| **合计** | | **157** | **100% 通过** |
+| **合计** | | **176** | **100% 通过** |
 
-其中 RBAC 专项用例（API + 服务 + Store + 请求封装）共 **101** 条。
+RBAC 专项用例（API + Service + Store + Can）约 **127** 条。
 
 ---
 
-## 六、覆盖率
+## 五、覆盖率
 
 | 指标 | 覆盖率 |
 |---|---:|
-| Statements | **64.38%**（593/921） |
-| Branches | **50.35%**（141/280） |
-| Functions | **68.12%**（171/251） |
-| Lines | **64.95%**（556/856） |
+| Statements | **73.48%**（657/894） |
+| Branches | **53.97%**（156/289） |
+| Functions | **73.89%**（184/249） |
+| Lines | **74.42%**（617/829） |
 
-RBAC 相关核心文件：
+RBAC 核心文件：
 
-| 文件 | 语句 | 分支 | 函数 | 行 |
-|---|---:|---:|---:|---:|
-| `apis/modules/rbac.ts` | **100%** | 50% | **100%** | **100%** |
-| `services/rbac/base.ts` | 90.90% | 88.88% | 88.88% | 89.65% |
-| `services/rbac/user.ts` | 81.03% | 42.85% | 80.00% | 82.14% |
-| `services/rbac/role.ts` | 79.16% | 41.66% | 76.92% | 84.61% |
-| `services/rbac/permission.ts` | 82.81% | 50.00% | 84.61% | 86.20% |
-| `services/auth.ts` | 82.29% | 55.17% | 90.00% | 85.05% |
-| `store/modules/rbac.ts` | 94.33% | 82.60% | **100%** | **100%** |
+| 文件 | 语句 | 函数 | 行 |
+|---|---:|---:|---:|
+| `apis/modules/rbac.ts` | **100%** | **100%** | **100%** |
+| `services/auth.ts` | 86.95% | 100% | 89.06% |
+| `services/rbac/base.ts` | 84.84% | 66.66% | 89.65% |
+| `services/rbac/user.ts` | 83.95% | 78.57% | 87.01% |
+| `services/rbac/role.ts` | 87.50% | 92.30% | 90.76% |
+| `services/rbac/permission.ts` | 78.37% | 92.85% | 77.94% |
+| `store/modules/permission.ts` | 92.59% | 88.88% | **100%** |
+| `store/modules/rbac.ts` | 92.53% | **100%** | **100%** |
+| `components/common/Can.vue` | 100% | 100% | 100% |
 
 > HTML 覆盖率报告：`docs/tests/rbac/coverage/index.html`
-> 未覆盖行主要是未在界面上触发的极端分支（如请求异常的兜底返回值、页面组件的空状态渲染）。
+> 页面组件（`.vue` 业务页）未纳入单元覆盖，属于 E2E 范畴。
 
 ---
 
-## 七、关键测试场景说明
+## 六、关键场景说明
 
-### 7.1 认证与验证码
+### 6.1 权限上下文与前端状态
 
-1. `GET /v1/captcha` 返回 `key` 与 SVG 图片；测试通过 Mock 辅助读取明文码。
-2. 登录必须同时提交 `captcha_key` + `captcha_code`；验证码一次性，校验后失效。
-3. 密码错误、用户不存在 → 401；验证码错误/缺失 → 400；禁用账号 → 403。
-4. 登录成功后 `/users/me` 携带 Bearer Token 返回当前用户（含角色与权限码）。
+1. 登录只写 `access_token`，不写用户与权限（D12）。
+2. `permissionStore.refreshPermissions()` 调用 `/users/me/permissions`，得到 `permissions: Set`、`isSuperuser`、`roles`、`permissionVersion`。
+3. 权限加载失败时清空并阻止放行（路由守卫跳 403 并携带 `reason=permission`）。
+4. 退出登录清空权限内存态。
+5. `has/hasAny/hasAll` 对超管直通；非超管严格匹配权限码。
 
-### 7.2 用户与角色分配
+### 6.2 菜单 / 路由 / 按钮收敛
 
-1. 列表返回 `roles` 便于直接展示标签（OpenAPI 的 UserRead 为最小集合，Mock 做了扩展）。
-2. `PUT /users/{id}/roles` 支持多角色、空数组清空、非法角色 400。
-3. 删除角色后，用户详情中该角色同步消失（级联一致性用例）。
+1. 路由 meta 使用 V2 权限码（`system.user:read` 等）。
+2. 受限父路由仅在有已授权子路由时保留；菜单隐藏占位模块。
+3. 用户/角色/权限页的所有写操作均以 `<Can>` 包裹，无权限时不渲染按钮。
+4. 直接访问无权限路由 → `/403`，页面不泄露权限码。
 
-### 7.3 角色与权限授权
+### 6.3 用户管理（Plan Task 10）
 
-1. 角色编码唯一，创建后不可修改（与 OpenAPI `RoleUpdate` 仅允许 name/description 一致）。
-2. `PUT /roles/{id}/permissions` 返回完整角色（含新权限）。
-3. 前端按 `code.split(':')[0]` 分组，支持整组勾选与半选状态。
-4. 权限更名/删除会同步角色内引用（两条级联用例）。
+- 角色列展示精简角色；超管标记；最后登录时间。
+- 状态开关：无 `system.user:update` 或操作自己时禁用；二次确认后调用 `PUT /users/{id}`。
+- 删除：自己不可删除（按钮禁用 + 后端 40304 双保险）。
+- 分配角色：整体替换，内置角色带「内置」标记。
 
-### 7.4 路由与菜单
+### 6.4 角色权限树（Plan Task 10）
 
-1. 受限父路由（/system）仅在有"真正授权的子路由"时展示，避免空菜单。
-2. 只拥有 `system:user:view` 时，概览与用户管理可见，角色/权限管理被过滤。
-3. 无任何 RBAC 权限时，系统管理入口隐藏。
+- 使用 `/permissions/tree` 的模块分组与 `module_name`。
+- 模块级三态全选、按权限码/名称搜索。
+- `admin` 角色：权限矩阵只读，底部仅「关闭」。
+- 内置角色：删除按钮禁用；后端返回 40303。
+- 使用中角色：删除返回 40306 并提示用户数。
+
+### 6.5 权限管理（Plan Task 10）
+
+- 模块筛选（服务端 `module` 参数）与关键词搜索。
+- 内置权限标记 `is_system`；删除按钮禁用。
+- 权限码创建前端按 PRD 4.2 正则校验，后端 Mock 再次校验并返回 400。
 
 ---
 
-## 八、Mock 测试中发现并修复的问题
+## 七、Mock 测试发现并修复的问题
 
 | # | 问题 | 影响 | 修复 |
 |---|---|---|---|
-| 1 | 旧框架登录接口为 `/auth/login`，与后端契约不符 | 无法对接真实后端 | 改为 `/v1/auth/login` 并强制验证码字段 |
-| 2 | 旧用户接口与 OpenAPI 的用户模型不一致（status/roles 结构） | 类型与后端不匹配 | 重建 `apis/modules/rbac.ts`，严格按 Schema 定义 |
-| 3 | 受限父路由会因"无权限占位子路由"而错误显示 | 无权限用户仍看到系统管理菜单 | 调整 `filterRoutesByPermission`：父路由需自身授权或存在已授权子路由 |
-| 4 | 删除角色后用户对象仍持有旧角色 | 授权展示不一致 | Mock 中删除角色时级联清理用户角色，并添加测试 |
-| 5 | 权限更新/删除后角色内权限对象未同步 | 角色详情显示旧名称 | Mock 中同步角色权限引用，并添加测试 |
-| 6 | 用户列表缺少角色信息，页面无法展示角色标签 | 列表信息缺失 | 列表接口扩展 `roles` 可选字段，类型单独定义 `UserListItem` |
-| 7 | 验证码一次性语义缺失 | 重放风险、与后端行为不一致 | Mock 校验后立即删除 key，并测试重复校验为 false |
-| 8 | 登录页沿用 AI 紫渐变与无效字段（captcha_id） | 视觉违规、字段错误 | 改为深蓝灰品牌色 + 暖金点缀；字段改为 `captcha_key` |
-| 9 | 概览统计复用列表服务单例，污染分页状态 | 页面间状态串扰 | Store 直接调用 API 聚合统计，不再复用列表服务 |
-| 10 | 测试间 Mock 数据相互污染 | 用例顺序依赖、偶发失败 | 新增 `resetMockData()` 并在 `beforeEach` 统一重置 |
+| 1 | 旧实现基于 V1 OpenAPI，权限码为 `system:user:view` | 与 V2 PRD 不一致，菜单与后端对不上 | 全量切换为 `system.user:read` 等 63 条目录 |
+| 2 | 登录响应携带 permissions 且 localStorage 缓存用户 | 违反 D6/D12，权限可能脏读 | 登录只存 Token；权限独立拉取、仅内存 |
+| 3 | 缺少 `/users/me/permissions` 与 `/permissions/tree` | 前端无法做权限收敛与权限树 | 新增 API、Service、Store 与 Mock |
+| 4 | 用户接口缺少更新/删除 | 无法启用/禁用、删除用户 | 按 7.2.3 / 7.4 补齐并实现自我保护 |
+| 5 | 内置角色/权限可被删除或缩减 | 违反 D2/D5，有锁死风险 | Mock 返回 40303；UI 禁用删除/缩减 |
+| 6 | 删除使用中的角色无提示 | 用户角色悬空 | Mock 返回 40306；UI 提示 user_count |
+| 7 | 角色权限分组按 `code.split(':')` 解析 | `system.user:read` 被错误归为 `system` | 使用后端 `module` 字段分组 |
+| 8 | 路由过滤器让空权限占位子路由保留受限父菜单 | 无权限用户仍看到系统管理 | 父路由需自身授权或存在「已授权」子路由 |
+| 9 | 旧版 `BaseService` 与 RBAC 服务重复且无测试 | 死代码、覆盖率虚低 | 移除 `services/base.ts`，统一使用 `services/rbac/base.ts` |
+| 10 | 测试间 Mock 数据污染 | 用例顺序依赖 | `resetMockData()` + 全局 `beforeEach` |
+| 11 | 登录页仍用 AI 紫渐变与旧验证码字段 | 视觉与字段均不合规 | 品牌深蓝灰配色；`captcha_key/captcha_code` |
 
 ---
 
-## 九、冒烟验证
+## 八、冒烟验证
 
 | 检查项 | 结果 |
 |---|---|
-| `npm run dev` 启动 | ✅ 366ms 就绪 |
-| `GET /` | ✅ HTTP 200 |
-| `GET /src/pages/login/index.vue` | ✅ HTTP 200 |
-| `GET /mockServiceWorker.js` | ✅ HTTP 200 |
 | `vue-tsc -b` | ✅ 0 错误 |
-| `vite build` | ✅ 786ms，产物正常 |
+| `vite build` | ✅ 854ms，产物正常 |
+| `npm run dev` | ✅ 就绪 |
+| `GET /`、`/src/pages/system/index.vue`、`/mockServiceWorker.js` | ✅ 均 200 |
 
-**未执行**：Playwright 浏览器 E2E（环境未安装浏览器内核，避免额外大体积下载）。
-如需补充，可执行 `npx playwright install chromium` 后对登录 → 用户 → 角色 → 权限四页做端到端 Mock 冒烟。
+**未执行**：Playwright 浏览器 E2E（环境未安装浏览器内核）。建议后续安装后覆盖：登录（含验证码）→ 系统概览 → 用户启停/分配角色 → 角色权限树 → 权限筛选。
 
 ---
 
-## 十、结论与建议
+## 九、结论
 
-1. **全 API 覆盖达成**：OpenAPI 中 RBAC 相关 23 个端点全部实现并被测试覆盖，端点覆盖率 100%。
-2. **分层落地**：页面仅依赖 Store 与 Service，Service 封装业务与状态，API 层保持薄封装，Mock 在 HTTP 层拦截，业务代码零侵入。
-3. **数据一致性**：删除角色/权限、更新权限名称等跨资源场景均有级联处理与用例保障。
-4. **质量基线**：157 条用例全部通过，RBAC API 模块行覆盖率 100%，服务层 80%+。
+1. **全 API 覆盖**：V2 规划的 27 个 RBAC 端点全部实现并被 Mock 测试覆盖，覆盖率 100%。
+2. **授权能力落地**：权限上下文、权限树、菜单/路由/按钮收敛、403 兜底均已实现，权限不持久化。
+3. **安全边界**：五类业务错误码（40302–40306）与 401 语义在 Mock 中可复现并被断言。
+4. **质量指标**：176 条用例全部通过；RBAC API 模块行覆盖 100%，核心 Store 行覆盖 100%。
 5. **后续建议**：
-   - 补充浏览器端 E2E（登录 + 三个管理页）。
-   - 当后端提供用户删除/修改接口时，同步补齐用户 CRUD 与对应用例。
-   - 将 `npm run test:coverage` 纳入 CI，对 `apis/modules` 设置 90% 行覆盖率阈值。
+   - 后端按 Plan Task 1–7/11/12 落地后，用同一套契约做联调回归。
+   - 补充浏览器 E2E 与 `admin/operator/viewer` 三账号的按钮级收敛验收（AC-23~AC-30）。
+   - 将 `npm run test:coverage` 纳入 CI，对 `apis/modules` 与 `store/modules/permission.ts` 设 90% 行覆盖率阈值。
 
 ---
 
@@ -246,8 +272,8 @@ RBAC 相关核心文件：
 ```bash
 cd frontend
 npm install
-npm run test            # 全部 Mock 测试（157 条）
-npm run test:coverage   # 生成覆盖率（输出至 docs/tests/coverage）
-npm run dev             # 启动开发服务器（MSW Mock，账号 admin / 123456）
+npm run test            # 176 条 Mock 测试
+npm run test:coverage   # 覆盖率（输出 docs/tests/coverage）
+npm run dev             # MSW Mock：admin / 123456（验证码显示在图片中）
 npm run build           # 类型检查 + 生产构建
 ```

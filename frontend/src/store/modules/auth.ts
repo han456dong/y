@@ -1,50 +1,49 @@
 /**
  * Pinia Store - 认证模块
+ * 权限判断委托给 permissionStore（PRD 8.1 分离）
  */
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authService } from '@/services/auth'
+import { usePermissionStore } from './permission'
 import type { LoginParams } from '@/apis/modules/auth'
-import type { UserInfo } from '@/apis/modules/auth'
+import type { User } from '@/apis/modules/rbac'
 
 export const useAuthStore = defineStore('auth', () => {
-  // 状态
-  const user = ref<UserInfo | null>(null)
+  const user = ref<User | null>(null)
   const accessToken = ref<string | null>(null)
   const isAuthenticated = ref(false)
-  const permissions = ref<string[]>([])
   const roles = ref<string[]>([])
   const loading = ref(false)
   const error = ref<Error | null>(null)
 
-  // 计算属性
-  const hasPermission = computed(() => (permission: string | string[]) => {
-    if (!isAuthenticated.value) return false
-    const perms = Array.isArray(permission) ? permission : [permission]
-    return perms.some((p) => permissions.value.includes(p))
-  })
+  const isSuperuser = computed(() => Boolean(user.value?.is_superuser))
+  const userName = computed(() => user.value?.username || '未知用户')
+  const userEmail = computed(() => user.value?.email || '')
+  const userRoleNames = computed(() => (user.value?.roles || []).map((r) => r.name))
 
-  const hasRole = computed(() => (role: string | string[]) => {
+  /** 权限检查委托给权限 Store（超管直通） */
+  function hasPermission(permission: string | string[]): boolean {
+    const permissionStore = usePermissionStore()
+    const codes = Array.isArray(permission) ? permission : [permission]
+    return permissionStore.hasAny(codes)
+  }
+
+  function hasRole(role: string | string[]): boolean {
     if (!isAuthenticated.value) return false
     const rolesArr = Array.isArray(role) ? role : [role]
     return rolesArr.some((r) => roles.value.includes(r))
-  })
+  }
 
-  const isAdmin = computed(() => hasRole.value(['admin', 'super_admin', 'administrator']))
-
-  const userName = computed(() => user.value?.username || '未知用户')
-  const userEmail = computed(() => user.value?.email || '')
-
-  // Actions
   async function login(params: LoginParams) {
     loading.value = true
     error.value = null
-
     try {
       const response = await authService.login(params)
+      syncFromService()
       if (response) {
-        syncFromService()
+        await usePermissionStore().refreshPermissions(true)
       }
       return response
     } catch (err) {
@@ -57,9 +56,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout(redirect = true) {
     loading.value = true
-
     try {
       await authService.logout(redirect)
+      usePermissionStore().clearPermissions()
       syncFromService()
     } catch (err) {
       error.value = err as Error
@@ -70,15 +69,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchUserInfo() {
     if (!accessToken.value) return null
-
     loading.value = true
     error.value = null
-
     try {
       const userInfo = await authService.fetchUserInfo()
-      if (userInfo) {
-        syncFromService()
-      }
+      if (userInfo) syncFromService()
       return userInfo
     } catch (err) {
       error.value = err as Error
@@ -88,48 +83,41 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // 从Service同步状态
   function syncFromService() {
     const state = authService.getState()
     user.value = state.user
     accessToken.value = state.accessToken
     isAuthenticated.value = state.isAuthenticated
-    permissions.value = state.permissions
     roles.value = state.roles
   }
 
-  // 重置状态
   function reset() {
     user.value = null
     accessToken.value = null
     isAuthenticated.value = false
-    permissions.value = []
     roles.value = []
     loading.value = false
     error.value = null
+    usePermissionStore().clearPermissions()
   }
 
-  // 初始化（应用启动时调用）
   function initialize() {
     syncFromService()
   }
 
   return {
-    // 状态
     user,
     accessToken,
     isAuthenticated,
-    permissions,
     roles,
     loading,
     error,
-    // 计算属性
-    hasPermission,
-    hasRole,
-    isAdmin,
+    isSuperuser,
     userName,
     userEmail,
-    // Actions
+    userRoleNames,
+    hasPermission,
+    hasRole,
     login,
     logout,
     fetchUserInfo,

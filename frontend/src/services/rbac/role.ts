@@ -118,7 +118,7 @@ export class RbacRoleService extends RbacListService<Role> {
   /** 按模块分组角色权限（用于权限分配弹窗） */
   static groupPermissionsByModule(permissions: Permission[]): Record<string, Permission[]> {
     return permissions.reduce<Record<string, Permission[]>>((groups, permission) => {
-      const module = rbacApi.getPermissionModule(permission.code)
+      const module = permission.module || rbacApi.getPermissionModule(permission.code)
       if (!groups[module]) groups[module] = []
       groups[module].push(permission)
       return groups

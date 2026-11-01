@@ -4,6 +4,7 @@
 
 import { createRouter, createWebHistory, createMemoryHistory, type Router, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/store/modules/auth'
+import { usePermissionStore } from '@/store/modules/permission'
 import { constantRoutes, asyncRoutes, whiteList, getAllRoutes } from './routes'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
@@ -102,11 +103,13 @@ function filterRoutesByPermission(routes: RouteRecordRaw[], permissions: string[
 
 /**
  * 全局前置守卫
+ * 登录校验 → 用户信息/权限加载 → 动态路由注入 → 权限校验（PRD 8.2 / FR-04）
  */
 router.beforeEach(async (to, from, next) => {
   NProgress.start()
 
   const authStore = useAuthStore()
+  const permissionStore = usePermissionStore()
 
   // 设置页面标题
   document.title = `${to.meta.title as string} - ${import.meta.env.VITE_APP_TITLE || '辰光Agent平台'}`
@@ -117,9 +120,8 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
-  // 检查是否已登录
+  // 未登录，重定向到登录页
   if (!authStore.isAuthenticated) {
-    // 未登录，重定向到登录页
     next(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
     NProgress.done()
     return
@@ -132,10 +134,25 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
+  // 恢复用户信息（刷新页面后仅有 Token）
+  if (!authStore.user) {
+    await authStore.fetchUserInfo()
+  }
+
+  // 权限加载失败时不放行（PRD Review Focus 5）
+  if (!permissionStore.loaded) {
+    const ok = await permissionStore.refreshPermissions()
+    if (!ok) {
+      next('/403?reason=permission')
+      NProgress.done()
+      return
+    }
+  }
+
   // 动态添加路由（只在首次登录时添加）
-  if (!isDynamicRoutesAdded && authStore.permissions.length > 0) {
+  if (!isDynamicRoutesAdded) {
     try {
-      const accessibleRoutes = filterRoutesByPermission(asyncRoutes, authStore.permissions)
+      const accessibleRoutes = filterRoutesByPermission(asyncRoutes, permissionStore.permissionList)
       addDynamicRoutes(accessibleRoutes)
       // 重新导航到目标路由
       next({ ...to, replace: true })
@@ -152,8 +169,7 @@ router.beforeEach(async (to, from, next) => {
   // 权限检查
   const routePermissions = to.meta?.permissions as string[] | undefined
   if (routePermissions && routePermissions.length > 0) {
-    const hasPermission = authStore.hasPermission(routePermissions)
-    if (!hasPermission) {
+    if (!permissionStore.hasAny(routePermissions)) {
       next('/403')
       NProgress.done()
       return
@@ -195,10 +211,11 @@ export function resetRouter(): void {
  * 刷新路由（权限变更时调用）
  */
 export function refreshRouter(): void {
-  const authStore = useAuthStore()
+  const permissionStore = usePermissionStore()
   removeDynamicRoutes()
-  if (authStore.permissions.length > 0) {
-    const accessibleRoutes = filterRoutesByPermission(asyncRoutes, authStore.permissions)
+  const permissions = permissionStore.permissionList
+  if (permissions.length > 0 || permissionStore.isSuperuser) {
+    const accessibleRoutes = filterRoutesByPermission(asyncRoutes, permissions)
     addDynamicRoutes(accessibleRoutes)
   }
 }

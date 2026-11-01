@@ -77,7 +77,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '仪表盘',
           icon: 'Monitor',
           requiresAuth: true,
-          permissions: ['dashboard:view'],
+          permissions: ['dashboard:read'],
         },
       },
     ],
@@ -91,7 +91,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
       title: '系统管理',
       icon: 'Setting',
       requiresAuth: true,
-      permissions: ['system:user:view', 'system:role:view', 'system:permission:view'],
+      permissions: ['system.user:read', 'system.role:read', 'system.permission:read', 'system.apikey:read', 'system.audit:read', 'system.alert:read', 'system.settings:read'],
     },
     children: [
       {
@@ -102,7 +102,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '系统概览',
           icon: 'Odometer',
           requiresAuth: true,
-          permissions: ['system:user:view', 'system:role:view', 'system:permission:view'],
+          // 概览页对所有登录用户开放；统计接口按权限独立校验
+          permissions: [],
         },
       },
       {
@@ -113,7 +114,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '用户管理',
           icon: 'User',
           requiresAuth: true,
-          permissions: ['system:user:view'],
+          permissions: ['system.user:read'],
         },
       },
       {
@@ -124,7 +125,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '角色管理',
           icon: 'Shield',
           requiresAuth: true,
-          permissions: ['system:role:view'],
+          permissions: ['system.role:read'],
         },
       },
       {
@@ -135,7 +136,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '权限管理',
           icon: 'Key',
           requiresAuth: true,
-          permissions: ['system:permission:view'],
+          permissions: ['system.permission:read'],
         },
       },
       {
@@ -221,7 +222,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
       title: '系统监控',
       icon: 'Activity',
       requiresAuth: true,
-      permissions: ['monitor:online:view', 'monitor:server:view'],
+      permissions: [],
     },
     children: [
       {
@@ -232,7 +233,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '在线用户',
           icon: 'Users',
           requiresAuth: true,
-          permissions: ['monitor:online:view'],
+          permissions: [],
+          hideInMenu: true,
         },
       },
       {
@@ -243,7 +245,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '服务监控',
           icon: 'Server',
           requiresAuth: true,
-          permissions: ['monitor:server:view'],
+          permissions: [],
+          hideInMenu: true,
         },
       },
       {

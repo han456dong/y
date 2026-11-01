@@ -114,32 +114,7 @@
 <a name='L49'></a><a href='#L49'>49</a>
 <a name='L50'></a><a href='#L50'>50</a>
 <a name='L51'></a><a href='#L51'>51</a>
-<a name='L52'></a><a href='#L52'>52</a>
-<a name='L53'></a><a href='#L53'>53</a>
-<a name='L54'></a><a href='#L54'>54</a>
-<a name='L55'></a><a href='#L55'>55</a>
-<a name='L56'></a><a href='#L56'>56</a>
-<a name='L57'></a><a href='#L57'>57</a>
-<a name='L58'></a><a href='#L58'>58</a>
-<a name='L59'></a><a href='#L59'>59</a>
-<a name='L60'></a><a href='#L60'>60</a>
-<a name='L61'></a><a href='#L61'>61</a>
-<a name='L62'></a><a href='#L62'>62</a>
-<a name='L63'></a><a href='#L63'>63</a>
-<a name='L64'></a><a href='#L64'>64</a>
-<a name='L65'></a><a href='#L65'>65</a>
-<a name='L66'></a><a href='#L66'>66</a>
-<a name='L67'></a><a href='#L67'>67</a>
-<a name='L68'></a><a href='#L68'>68</a>
-<a name='L69'></a><a href='#L69'>69</a>
-<a name='L70'></a><a href='#L70'>70</a>
-<a name='L71'></a><a href='#L71'>71</a>
-<a name='L72'></a><a href='#L72'>72</a>
-<a name='L73'></a><a href='#L73'>73</a>
-<a name='L74'></a><a href='#L74'>74</a>
-<a name='L75'></a><a href='#L75'>75</a>
-<a name='L76'></a><a href='#L76'>76</a>
-<a name='L77'></a><a href='#L77'>77</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L52'></a><a href='#L52'>52</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -178,37 +153,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">138x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">19x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">22x</span>
+<span class="cline-any cline-yes">141x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -217,22 +167,16 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
  * API模块 - 认证与验证码
- * 接口契约对齐 docs/openapi.json：/api/v1/auth/login、/api/v1/captcha
+ * 契约：POST /api/v1/auth/login、GET/POST /api/v1/captcha
  */
 &nbsp;
 import { request } from '../index'
-import type { Role, UserWithRoles } from './rbac'
-&nbsp;
-/* ============================================================
- * 数据类型
- * ============================================================ */
+import type { User } from './rbac'
 &nbsp;
 export interface LoginParams {
   username: string
   password: string
-  /** 验证码 key（后端必填） */
   captcha_key: string
-  /** 验证码内容（后端必填） */
   captcha_code: string
 }
 &nbsp;
@@ -241,16 +185,11 @@ export interface TokenResponse {
   token_type: string
 }
 &nbsp;
-/** 登录响应中携带权限码的用户信息 */
-export interface LoginUser extends UserWithRoles {
-  permissions?: string[]
-}
-&nbsp;
-/** 登录响应（后端 TokenResponse + 前端附加的用户信息） */
+/** 登录响应：TokenResponse + 前端附加的用户信息（JWT 不携带权限码，PRD D6） */
 export interface LoginResponse extends TokenResponse {
   refresh_token?: string
   expires_in?: number
-  user: LoginUser
+  user: User
 }
 &nbsp;
 export interface CaptchaRead {
@@ -263,31 +202,17 @@ export interface CaptchaVerifyParams {
   code: string
 }
 &nbsp;
-/** 前端用户信息（含角色权限） */
-export interface UserInfo extends UserWithRoles {
-  roles: Role[]
-  permissions: string[]
-}
-&nbsp;
-/* ============================================================
- * 认证接口
- * ============================================================ */
-&nbsp;
-/** POST /api/v1/auth/login —— 用户登录 */
+/** POST /api/v1/auth/login */
 export function loginApi(params: LoginParams): Promise&lt;LoginResponse&gt; {
   return request.post('/v1/auth/login', params)
 }
 &nbsp;
-/* ============================================================
- * 验证码接口
- * ============================================================ */
-&nbsp;
-/** GET /api/v1/captcha —— 获取验证码 */
+/** GET /api/v1/captcha */
 export function getCaptchaApi(): Promise&lt;CaptchaRead&gt; {
   return request.get('/v1/captcha')
 }
 &nbsp;
-/** POST /api/v1/captcha —— 验证验证码 */
+/** POST /api/v1/captcha */
 export function verifyCaptchaApi(params: CaptchaVerifyParams): Promise&lt;boolean&gt; {
   return request.post('/v1/captcha', params)
 }
@@ -298,7 +223,7 @@ export function verifyCaptchaApi(params: CaptchaVerifyParams): Promise&lt;boolea
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-11-01T08:32:06.691Z
+                at 2026-11-01T08:49:00.291Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

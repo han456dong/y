@@ -48,34 +48,33 @@ describe('路由层 - 路由表定义', () => {
 })
 
 describe('路由层 - 权限过滤', () => {
-  it('管理员权限可以看到所有路由', () => {
-    const allPermissions = ['system:manage', 'system:user:view', 'system:role:view', 'monitor:view']
+  it('管理员权限可以看到系统管理', () => {
+    const allPermissions = [
+      'system.user:read', 'system.role:read', 'system.permission:read',
+      'system.apikey:read', 'system.audit:read', 'system.alert:read', 'system.settings:read',
+    ]
     const filtered = filterRoutesByPermission(asyncRoutes, allPermissions)
-    expect(filtered.length).toBeGreaterThan(0)
+    const systemRoute = filtered.find((r) => r.path === '/system')
+    expect(systemRoute).toBeDefined()
+    expect(systemRoute!.children!.map((c) => c.path)).toContain('user')
   })
 
   it('无权限用户看不到系统管理', () => {
     const filtered = filterRoutesByPermission(asyncRoutes, [])
-    // 无权限要求的路由保留，但权限路由（如系统管理）被过滤
     const systemRoute = filtered.find((r) => r.path === '/system')
     expect(systemRoute).toBeUndefined()
-    const monitorRoute = filtered.find((r) => r.path === '/monitor')
-    expect(monitorRoute).toBeUndefined()
   })
 
   it('只有用户管理权限时只看到概览与用户管理', () => {
-    const permissions = ['system:user:view']
+    const permissions = ['system.user:read']
     const filtered = filterRoutesByPermission(asyncRoutes, permissions)
 
-    // 检查是否有系统管理路由
     const systemRoute = filtered.find((r) => r.path === '/system')
     expect(systemRoute).toBeDefined()
 
     const childPaths = systemRoute!.children!.map((c) => c.path)
-    // 授权的页面可见
     expect(childPaths).toContain('overview')
     expect(childPaths).toContain('user')
-    // 未授权的 RBAC 页面被过滤
     expect(childPaths).not.toContain('role')
     expect(childPaths).not.toContain('permission')
   })

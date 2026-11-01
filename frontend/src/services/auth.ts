@@ -1,36 +1,22 @@
 /**
  * Service层 - 认证业务逻辑
- * 负责登录态、令牌与用户权限的编排（API 契约见 apis/modules/auth.ts）
+ * 仅负责登录态与用户信息；权限由 permissionStore 通过 /users/me/permissions 独立维护（PRD D6/D12）
  */
 
 import { ref } from 'vue'
 import router from '@/router'
 import * as authApi from '@/apis/modules/auth'
 import * as rbacApi from '@/apis/modules/rbac'
-import type { LoginParams, LoginResponse, UserInfo } from '@/apis/modules/auth'
+import type { LoginParams, LoginResponse } from '@/apis/modules/auth'
+import type { User } from '@/apis/modules/rbac'
 
-// 认证状态接口
+const TOKEN_KEY = 'access_token'
+
 export interface AuthState {
-  user: UserInfo | null
+  user: User | null
   accessToken: string | null
   isAuthenticated: boolean
-  permissions: string[]
   roles: string[]
-}
-
-// Token存储键
-const TOKEN_KEY = 'access_token'
-const USER_KEY = 'user_info'
-
-/**
- * 从用户信息中推导权限码集合
- * 优先使用 user.permissions，否则聚合角色上的权限
- */
-function resolvePermissions(user: UserInfo): string[] {
-  if (Array.isArray(user.permissions) && user.permissions.length > 0) {
-    return [...user.permissions]
-  }
-  return (user.roles || []).flatMap((role) => (role.permissions || []).map((p) => p.code))
 }
 
 class AuthService {
@@ -38,100 +24,61 @@ class AuthService {
     user: null,
     accessToken: null,
     isAuthenticated: false,
-    permissions: [],
     roles: [],
   }
 
-  // 公开的响应式引用
-  public readonly user = ref<UserInfo | null>(null)
+  public readonly user = ref<User | null>(null)
   public readonly accessToken = ref<string | null>(null)
   public readonly isAuthenticated = ref(false)
-  public readonly permissions = ref<string[]>([])
   public readonly roles = ref<string[]>([])
   public readonly loading = ref(false)
   public readonly error = ref<Error | null>(null)
 
   constructor() {
-    this.initFromStorage()
+    this.restoreToken()
   }
 
-  /** 从本地存储恢复登录态 */
-  private initFromStorage(): void {
+  /** 仅恢复 Token，用户信息与权限启动后重新拉取 */
+  private restoreToken(): void {
     const token = localStorage.getItem(TOKEN_KEY)
-    const userStr = localStorage.getItem(USER_KEY)
-
     if (!token) return
-
     this.state.accessToken = token
     this.accessToken.value = token
     this.state.isAuthenticated = true
     this.isAuthenticated.value = true
-
-    if (userStr) {
-      try {
-        this.setUser(JSON.parse(userStr) as UserInfo)
-      } catch {
-        this.clearStorage()
-        this.resetState()
-      }
-    }
   }
 
-  /** 写入用户信息并同步权限/角色 */
-  private setUser(user: UserInfo): void {
-    const permissions = resolvePermissions(user)
-    const roles = (user.roles || []).map((r) => r.code)
-
-    this.state.user = user
-    this.user.value = user
-    this.state.permissions = permissions
-    this.permissions.value = permissions
-    this.state.roles = roles
-    this.roles.value = roles
-
-    localStorage.setItem(USER_KEY, JSON.stringify(user))
-  }
-
-  /** 写入令牌 */
-  private setToken(accessToken: string): void {
-    this.state.accessToken = accessToken
-    this.accessToken.value = accessToken
+  private setToken(token: string): void {
+    this.state.accessToken = token
+    this.accessToken.value = token
     this.state.isAuthenticated = true
     this.isAuthenticated.value = true
-    localStorage.setItem(TOKEN_KEY, accessToken)
+    localStorage.setItem(TOKEN_KEY, token)
   }
 
-  /** 清理本地存储 */
-  private clearStorage(): void {
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
+  private setUser(user: User | null): void {
+    this.state.user = user
+    this.user.value = user
+    this.state.roles = (user?.roles || []).map((r) => r.code)
+    this.roles.value = this.state.roles
   }
 
-  /** 重置内存状态 */
   private resetState(): void {
-    this.state = {
-      user: null,
-      accessToken: null,
-      isAuthenticated: false,
-      permissions: [],
-      roles: [],
-    }
+    this.state = { user: null, accessToken: null, isAuthenticated: false, roles: [] }
     this.user.value = null
     this.accessToken.value = null
     this.isAuthenticated.value = false
-    this.permissions.value = []
     this.roles.value = []
   }
 
-  /** 用户登录 */
+  /** 登录 */
   async login(params: LoginParams): Promise<LoginResponse | null> {
     this.loading.value = true
     this.error.value = null
-
     try {
       const response = await authApi.loginApi(params)
       this.setToken(response.access_token)
-      this.setUser(response.user as UserInfo)
+      this.setUser(response.user)
       return response
     } catch (err) {
       this.error.value = err as Error
@@ -141,11 +88,11 @@ class AuthService {
     }
   }
 
-  /** 用户登出（后端未提供登出接口，清理本地登录态即可） */
+  /** 登出（前端清 Token，PRD 7.2.4：服务端黑名单非本期） */
   async logout(redirect = true): Promise<void> {
     this.loading.value = true
     try {
-      this.clearStorage()
+      localStorage.removeItem(TOKEN_KEY)
       this.resetState()
     } finally {
       this.loading.value = false
@@ -155,21 +102,15 @@ class AuthService {
     }
   }
 
-  /** 获取当前登录用户信息 */
-  async fetchUserInfo(): Promise<UserInfo | null> {
+  /** 拉取当前用户信息（不包含权限码） */
+  async fetchUserInfo(): Promise<User | null> {
     if (!this.state.accessToken) return null
-
     this.loading.value = true
     this.error.value = null
-
     try {
       const user = await rbacApi.getCurrentUserApi()
-      const normalized: UserInfo = {
-        ...user,
-        permissions: this.state.permissions.length ? this.state.permissions : [],
-      }
-      this.setUser(normalized)
-      return normalized
+      this.setUser(user)
+      return user
     } catch (err) {
       this.error.value = err as Error
       return null
@@ -178,37 +119,28 @@ class AuthService {
     }
   }
 
-  /** 检查权限（任一命中即通过） */
-  hasPermission(permission: string | string[]): boolean {
-    if (!this.state.isAuthenticated) return false
-    const perms = Array.isArray(permission) ? permission : [permission]
-    return perms.some((p) => this.state.permissions.includes(p))
-  }
-
-  /** 检查角色（任一命中即通过） */
+  /** 是否拥有角色 */
   hasRole(role: string | string[]): boolean {
     if (!this.state.isAuthenticated) return false
     const roles = Array.isArray(role) ? role : [role]
     return roles.some((r) => this.state.roles.includes(r))
   }
 
-  /** 是否管理员 */
-  get isAdmin(): boolean {
-    return this.hasRole(['admin', 'super_admin', 'administrator'])
+  /** 是否超级管理员 */
+  get isSuperuser(): boolean {
+    return Boolean(this.state.user?.is_superuser)
   }
 
-  /** 重置服务状态（用于测试与登出） */
+  /** 重置（测试/登出） */
   reset(): void {
-    this.clearStorage()
+    localStorage.removeItem(TOKEN_KEY)
     this.resetState()
   }
 
-  /** 获取完整状态快照 */
   getState(): AuthState {
     return { ...this.state }
   }
 }
 
-// 导出单例
 export const authService = new AuthService()
 export default authService

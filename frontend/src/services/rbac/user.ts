@@ -1,24 +1,22 @@
 /**
- * Service层 - RBAC 用户管理业务逻辑
+ * Service层 - RBAC 用户管理业务逻辑（V2）
  */
 
 import { ref } from 'vue'
 import { RbacListService } from './base'
 import * as rbacApi from '@/apis/modules/rbac'
-import type { User, UserWithRoles, UserListItem, Role, UserCreateParams } from '@/apis/modules/rbac'
+import type { User, UserWithRoles, RoleLite, UserCreateParams, UserUpdateParams } from '@/apis/modules/rbac'
 
-export class RbacUserService extends RbacListService<UserListItem> {
-  /** 当前查看的用户详情（含角色） */
+export class RbacUserService extends RbacListService<User> {
   public readonly detail = ref<UserWithRoles | null>(null)
-  /** 用户当前角色 */
-  public readonly userRoles = ref<Role[]>([])
+  public readonly userRoles = ref<RoleLite[]>([])
 
   constructor() {
     super((params) => rbacApi.searchUsersApi(params))
   }
 
-  /** 获取列表（offset / limit 版本，用于概览统计） */
-  async listAll(limit = 100): Promise<UserListItem[]> {
+  /** 全部用户（概览统计/导出） */
+  async listAll(limit = 200): Promise<User[]> {
     this.loading.value = true
     this.error.value = null
     try {
@@ -50,6 +48,48 @@ export class RbacUserService extends RbacListService<UserListItem> {
     }
   }
 
+  /** 更新用户（邮箱 / 启停） */
+  async updateUser(userId: number, data: UserUpdateParams): Promise<User | null> {
+    this.loading.value = true
+    this.error.value = null
+    try {
+      const user = await rbacApi.updateUserApi(userId, data)
+      this.items.value = this.items.value.map((u) => (u.id === userId ? { ...u, ...user } : u))
+      if (this.detail.value?.id === userId) {
+        this.detail.value = { ...this.detail.value, ...user }
+      }
+      return user
+    } catch (err) {
+      this.error.value = err as Error
+      return null
+    } finally {
+      this.loading.value = false
+    }
+  }
+
+  /** 启用/禁用用户 */
+  async toggleActive(userId: number, isActive: boolean): Promise<User | null> {
+    return this.updateUser(userId, { is_active: isActive })
+  }
+
+  /** 删除用户 */
+  async deleteUser(userId: number): Promise<boolean> {
+    this.loading.value = true
+    this.error.value = null
+    try {
+      await rbacApi.deleteUserApi(userId)
+      this.items.value = this.items.value.filter((u) => u.id !== userId)
+      this.pagination.value.total = Math.max(0, this.pagination.value.total - 1)
+      if (this.detail.value?.id === userId) this.detail.value = null
+      return true
+    } catch (err) {
+      this.error.value = err as Error
+      return false
+    } finally {
+      this.loading.value = false
+    }
+  }
+
   /** 用户详情 */
   async fetchDetail(userId: number): Promise<UserWithRoles | null> {
     this.loading.value = true
@@ -66,8 +106,8 @@ export class RbacUserService extends RbacListService<UserListItem> {
     }
   }
 
-  /** 用户角色列表 */
-  async fetchUserRoles(userId: number): Promise<Role[]> {
+  /** 用户角色列表（精简） */
+  async fetchUserRoles(userId: number): Promise<RoleLite[]> {
     this.loading.value = true
     this.error.value = null
     try {
@@ -89,13 +129,9 @@ export class RbacUserService extends RbacListService<UserListItem> {
     try {
       const user = await rbacApi.assignUserRolesApi(userId, { role_ids: roleIds })
       this.detail.value = user
-      // 同步列表中的角色列
-      const index = this.items.value.findIndex((u) => u.id === userId)
-      if (index !== -1) {
-        this.items.value = this.items.value.map((u, i) =>
-          i === index ? ({ ...u, roles: user.roles } as User) : u
-        )
-      }
+      this.items.value = this.items.value.map((u) =>
+        u.id === userId ? { ...u, roles: user.roles, is_superuser: user.is_superuser } : u
+      )
       return user
     } catch (err) {
       this.error.value = err as Error

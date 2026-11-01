@@ -5,14 +5,43 @@
 import { ref, computed } from 'vue'
 import { RbacListService } from './base'
 import * as rbacApi from '@/apis/modules/rbac'
-import type { Permission, PermissionCreateParams, PermissionUpdateParams } from '@/apis/modules/rbac'
+import type {
+  Permission,
+  PermissionCreateParams,
+  PermissionUpdateParams,
+  PermissionTreeGroup,
+  PageQuery,
+} from '@/apis/modules/rbac'
 
-export class RbacPermissionService extends RbacListService<Permission> {
+/** 权限查询参数（支持模块筛选） */
+export interface PermissionQuery extends PageQuery {
+  module?: string
+}
+
+export class RbacPermissionService extends RbacListService<Permission, PermissionQuery> {
   /** 当前查看的权限详情 */
   public readonly detail = ref<Permission | null>(null)
+  /** 权限树（按模块分组） */
+  public readonly tree = ref<PermissionTreeGroup[]>([])
+  public readonly treeLoading = ref(false)
 
   constructor() {
     super((params) => rbacApi.searchPermissionsApi(params))
+  }
+
+  /** 权限树（PRD 7.2.2） */
+  async fetchTree(): Promise<PermissionTreeGroup[]> {
+    this.treeLoading.value = true
+    this.error.value = null
+    try {
+      this.tree.value = await rbacApi.getPermissionTreeApi()
+      return this.tree.value
+    } catch (err) {
+      this.error.value = err as Error
+      return []
+    } finally {
+      this.treeLoading.value = false
+    }
   }
 
   /** 全部权限（用于角色授权） */
@@ -101,7 +130,7 @@ export class RbacPermissionService extends RbacListService<Permission> {
   /** 当前页权限按模块分组 */
   readonly moduleGroups = computed(() => {
     return this.items.value.reduce<Record<string, Permission[]>>((groups, permission) => {
-      const module = rbacApi.getPermissionModule(permission.code)
+      const module = permission.module || rbacApi.getPermissionModule(permission.code)
       if (!groups[module]) groups[module] = []
       groups[module].push(permission)
       return groups
@@ -112,6 +141,7 @@ export class RbacPermissionService extends RbacListService<Permission> {
   readonly moduleStats = computed(() =>
     Object.entries(this.moduleGroups.value).map(([module, permissions]) => ({
       module,
+      module_name: permissions[0]?.module || module,
       count: permissions.length,
     }))
   )

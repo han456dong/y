@@ -144,21 +144,25 @@ npm run test:coverage
 
 RBAC 模块专项报告与覆盖率见 [`docs/tests/rbac/RBAC_TEST_REPORT.md`](../docs/tests/rbac/RBAC_TEST_REPORT.md)。
 
-- 7 个测试文件，157 个用例，全部通过
-- RBAC 相关 23 个接口端点 100% 覆盖
-- 语句覆盖率 64.38%，行覆盖率 64.95%
+- 8 个测试文件，176 个用例，全部通过
+- RBAC 相关 27 个接口端点 100% 覆盖
+- 语句覆盖率 73.48%，行覆盖率 74.42%
 
 ## RBAC 模块
 
 | 页面 | 路由 | 能力 |
 |---|---|---|
-| 系统概览 | `/system/overview` | 用户/角色/权限统计、模块入口、权限模型说明 |
-| 用户管理 | `/system/user` | 搜索、分页、创建用户、查看详情、分配角色、CSV 导出 |
-| 角色管理 | `/system/role` | 搜索、分页、CRUD、按模块分配权限 |
-| 权限管理 | `/system/permission` | 搜索、分页、CRUD、模块标签与统计 |
+| 系统概览 | `/system/overview` | 用户/角色/权限统计、模块入口、RBAC 模型说明 |
+| 用户管理 | `/system/user` | 搜索、分页、创建、编辑、启用/禁用（自我保护）、删除、分配角色 |
+| 角色管理 | `/system/role` | CRUD、权限树（模块分组/三态/搜索）、内置角色与 admin 权限只读 |
+| 权限管理 | `/system/permission` | 模块筛选、分页 CRUD、内置标记、权限码格式校验 |
 
-接口严格对齐 `docs/openapi.json` 的 `/api/v1/*`：登录与验证码、用户（列表/搜索/创建/详情/角色）、
-角色（CRUD/授权）、权限（CRUD）。Mock 账号：`admin / 123456`（验证码在图片中直接显示，便于调试）。
+接口对齐 `PROJECT_SPEC_V2.md` 与 `rbac-plan.md` 的 27 个端点：登录/验证码、当前用户与权限上下文
+（`/users/me/permissions`）、用户（列表/搜索/创建/详情/角色/更新/删除）、角色（CRUD/授权）、
+权限（CRUD/权限树）。权限码共 63 条 / 16 模块，内置角色 admin(63)、operator(27)、viewer(9)。
+
+前端权限体系：`usePermissionStore`（内存态，不写 localStorage）→ `<Can>` 按钮收敛 → 路由守卫 403 兜底。
+Mock 账号：`admin / 123456`（另有 operator01 / viewer01，验证码在图片中直接显示）。
 
 ## 路由与权限
 
