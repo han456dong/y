@@ -1,0 +1,29 @@
+# 依赖
+node_modules/
+frontend/node_modules/
+
+# 构建产物
+dist/
+frontend/dist/
+dist-ssr/
+
+# 日志
+*.log
+logs/
+npm-debug.log*
+
+# 覆盖率（报告产物已归档到 docs/tests/coverage）
+frontend/docs/tests/coverage/
+
+# 编辑器
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.local
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/

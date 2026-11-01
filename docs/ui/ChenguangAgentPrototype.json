@@ -1,0 +1,94 @@
+{
+  "pages": [
+    {
+      "route": "/",
+      "title": "工作台",
+      "layout": "dashboard",
+      "components": [
+        {"type": "Header", "text": "工作台"},
+        {"type": "StatCards", "items": [
+          {"label": "今日调用量", "value": "${stats.todayCalls}", "badge": "${stats.todayCallsTrend > 0 ? '增长' : '下降'}"},
+          {"label": "Token消耗", "value": "${formatNumber(stats.tokenUsage)}", "badge": "${stats.tokenUsageTrend > 0 ? '增长' : '下降'}"},
+          {"label": "费用估算", "value": "¥${stats.cost}", "badge": "${stats.costTrend > 0 ? '增长' : '下降'}"},
+          {"label": "活跃Agent", "value": "${stats.activeAgents}/${stats.totalAgents}"}
+        ]},
+        {"type": "AgentRanking", "dataSource": "${topAgents}"},
+        {"type": "AlertList", "dataSource": "${alerts}"}
+      ]
+    },
+    {
+      "route": "/models",
+      "title": "模型管理",
+      "components": [
+        {"type": "SearchBar", "placeholder": "搜索模型名称..."},
+        {"type": "DataTable", "columns": ["模型名称", "Model ID", "供应商", "能力", "上下文长度", "价格", "状态", "操作"], "dataSource": "${models}"}
+      ]
+    },
+    {
+      "route": "/prompts",
+      "title": "Prompt管理",
+      "components": [
+        {"type": "SearchBar", "placeholder": "搜索Prompt名称..."},
+        {"type": "DataTable", "columns": ["名称", "分类", "版本", "变量数", "标签", "状态", "操作"], "dataSource": "${prompts}"}
+      ]
+    },
+    {
+      "route": "/knowledge",
+      "title": "知识库管理",
+      "components": [
+        {"type": "SearchBar", "placeholder": "搜索知识库名称..."},
+        {"type": "DataTable", "columns": ["名称", "描述", "模型", "文档数", "状态", "操作"], "dataSource": "${knowledgeBases}"}
+      ]
+    },
+    {
+      "route": "/tools",
+      "title": "工具管理",
+      "components": [
+        {"type": "SearchBar", "placeholder": "搜索工具名称..."},
+        {"type": "DataTable", "columns": ["工具名称", "类型", "调用次数", "成功率", "平均延迟", "状态", "操作"], "dataSource": "${tools}"}
+      ]
+    },
+    {
+      "route": "/agents",
+      "title": "Agent管理",
+      "components": [
+        {"type": "SearchBar", "placeholder": "搜索Agent名称..."},
+        {"type": "DataTable", "columns": ["名称", "类型", "状态", "成功率", "调用量", "版本", "操作"], "dataSource": "${agents}"}
+      ]
+    },
+    {
+      "route": "/conversations",
+      "title": "对话日志",
+      "components": [
+        {"type": "SearchBar", "placeholder": "搜索对话..."},
+        {"type": "DataTable", "columns": ["对话ID", "Agent", "用户", "轮次", "Token", "成本", "时长", "满意度", "状态", "开始时间"], "dataSource": "${conversations}"}
+      ]
+    },
+    {
+      "route": "/analytics",
+      "title": "数据统计",
+      "components": [
+        {"type": "StatCards", "items": [
+          {"label": "用量总计", "value": "${analytics.totalUsage}"},
+          {"label": "调用次数", "value": "${analytics.totalCalls}"}
+        ]},
+        {"type": "DataTable", "columns": ["指标", "今日", "昨日", "变化"], "dataSource": "${analytics.metrics}"}
+      ]
+    },
+    {
+      "route": "/system",
+      "title": "系统管理",
+      "components": [
+        {"type": "DataTable", "columns": ["类别", "操作"], "dataSource": "${systemFeatures}"}
+      ]
+    }
+  ],
+  "componentLibrary": {
+    "Header": "header.html",
+    "StatCards": "stat-cards.html",
+    "AgentRanking": "agent-ranking.html",
+    "AlertList": "alert-list.html",
+    "SearchBar": "search-bar.html",
+    "DataTable": "data-table.html"
+  }
+}

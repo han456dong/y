@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>辰光 Agent - 工作台</title>
+<style>
+/* Layout Design Spec Based System */
+:root {
+  --sidebar-dark: #0F172A;
+  --sidebar-text: #CBD5E1;
+  --sidebar-active: #2563EB;
+  --main-bg: #F1F5F9;
+  --card: #FFFFFF;
+  --border: #E2E8F0;
+  --text: #1E293B;
+  --text-muted: #64748B;
+  --accent: #2563EB;
+  --accent-light: #DBEAFE;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --radius-lg: 8px;
+  --radius-md: 6px;
+  --radius-sm: 4px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--main-bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+button { cursor: pointer; border: none; background: none; font: inherit; }
+
+/* Layout Structure */
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar Navigation */
+.sidebar {
+  width: 240px;
+  background: var(--sidebar-dark);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  border-bottom: 1px solid #1E293B;
+}
+
+.sidebar-header .logo {
+  display: flex;
+  align-items: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+}
+
+.sidebar-header .icon {
+  margin-right: 10px;
+  fill: var(--accent);
+  width: 20px;
+  height: 20px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 16px 12px;
+  overflow-y: auto;
+}
+
+.group-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  margin-top: 16px;
+}
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  margin: 2px 6px;
+  border-radius: var(--radius-lg);
+  color: var(--sidebar-text);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.sidebar-nav a:hover {
+  background: #1E2A3B;
+}
+
+.sidebar-nav a.active {
+  background: var(--sidebar-active);
+  color: white;
+}
+
+.sidebar-nav a.active .icon {
+  margin-right: 10px;
+  fill: white;
+}
+
+.sidebar-nav .icon {
+  fill: var(--sidebar-text);
+  margin-right: 10px;
+  width: 16px;
+  height: 16px;
+}
+
+.sidebar-user {
+  height: 64px;
+  border-top: 1px solid #1E293B;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-user .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.sidebar-user .meta {
+  margin-left: 12px;
+}
+
+.sidebar-user .name {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.sidebar-user .email {
+  font-size: 12px;
+  color: var(--sidebar-text);
+}
+
+/* Main Content */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  height: 56px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+}
+
+.header .path {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+.header .path a:not(:last-child) {
+  color: var(--text-muted);
+}
+
+.header .path a:last-child {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.header .path a:not(:last-child)::after {
+  content: '/';
+  margin: 0 8px;
+  color: var(--border);
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.page h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.page .subtitle {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+/* Stats Cards */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.stat .label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.stat .value {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.stat .trend {
+  font-size: 12px;
+  color: var(--success);
+}
+
+/* Tables */
+.table-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.table-card h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.table-card .toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.table-card .toolbar .left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-card .toolbar input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  width: 280px;
+  font-size: 14px;
+  outline: none;
+}
+
+.table-card .toolbar input:focus {
+  border-color: var(--accent);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th, td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  padding: 12px 12px 8px;
+  border-bottom: 2px solid var(--border);
+}
+
+td {
+  vertical-align: top;
+}
+
+body tr:hover {
+  background: #F8FAFC;
+}
+
+body tr td:first-child {
+  font-weight: 500;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge.default-bg {
+  background: #F1F5F9;
+  color: #374151;
+}
+
+.badge.success-bg {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.badge.warning-bg {
+  background: #FEF9C3;
+  color: #854D0E;
+}
+
+.badge.danger-bg {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  transition: background 0.15s;
+}
+
+.actions button:hover {
+  background: #F1F5F9;
+}
+
+.actions button.primary {
+  background: var(--accent);
+  color: white;
+}
+
+.actions button.primary:hover {
+  background: #1D4ED8;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.pagination .left span {
+  margin-right: 8px;
+}
+
+.pagination .right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pagination button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 13px;
+  background: var(--card);
+}
+
+.pagination button.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sidebar {
+    width: 64px;
+  }
+
+  .sidebar-header .logo span,
+  .sidebar-nav .group-title,
+  .sidebar-user .meta {
+    display: none;
+  }
+
+  .sidebar-nav a {
+    width: 48px;
+    justify-content: center;
+    padding: 12px;
+    margin: 2px 0;
+  }
+
+  .sidebar-nav a.active .icon {
+    margin: 0;
+  }
+
+  .sidebar-nav .icon {
+    margin: 0;
+  }
+
+  .sidebar-user {
+    padding: 12px;
+  }
+
+  .sidebar-user .avatar {
+    width: 32px;
+  }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 2L3 7v10c0 4.4 3.6 8 9 9s9-3.6 9-9V7l-9-5z"/></svg>
+        <span>辰光 Agent</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="group-title">工作台</div>
+      <a href="v1_dashboard.html" class="active">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16v2H4zM4 8h16v2H4zM4 12h10v2H4zM4 16h10v2H4zM4 20h16v2H4z"/></svg>
+        <span>工作台
+      </a>
+
+      <div class="group-title">Agent 管理</div>
+      <a href="v2_agents.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 2C9.24 2 7 4.24 7 7c0 2.24 1.41 4.14 3.28 4.78.27.09.42.34.42.62 0 .35-.27.64-.62.72C8.06 13.93 6 12.18 6 10 6 7.24 8.24 5 11 5c.55 0 1.08.12 1.57.33.26-.23.56-.41.89-.51C12.46 5.09 11.76 5 11 5 8.79 5 6 7.79 6 11c0 3.21 2.79 6 6 6s6-2.79 6-6c0-.76-.17-1.49-.45-2.16.34-.26.62-.58.82-.95C19.57 7.14 20 6.1 20 5c0-2.76-2.24-5-5-5-.76 0-1.49.17-2.16.45z"/></svg>
+        <span>Agent 管理
+      </a>
+
+      <div class="group-title">模型管理</div>
+      <a href="v3_models.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 2l7 4v6c0 3.3-2.2 6.1-5.4 7l-1.6.3c-.3.1-.6.1-.9 0l-1.6-.3C5.2 18.1 3 15.3 3 12V6l7-4z"/></svg>
+        <span>模型管理
+      </a>
+
+      <div class="group-title">Prompt 管理</div>
+      <a href="v4_prompts.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 5c0-.55.45-1 1-1h12.17l2.83 2.83c.18.18.25.43.17.66a.5.5 0 01-.64.3A1.97 1.97 0 0015 7H4V5h1zm0 4v12c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V9H4z"/></svg>
+        <span>Prompt 管理
+      </a>
+
+      <div class="group-title">知识库</div>
+      <a href="v5_kb.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 6c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V6zm10 0h4v12h-4V6zM4 8h4v12H6c-1.1 0-2-.9-2-2V8zm2 0v12"/></svg>
+        <span>知识库管理
+      </a>
+
+      <div class="group-title">工具管理</div>
+      <a href="v6_tools.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.57-.99.57-1.65 0-1.05-.95-1.95-2.08-1.95-.63 0-1.23.28-1.57.75 -.35-.02-.7-.03-1.05-.03-3.45 0-6.25 2.8-6.25 6.25 0 1.51.5 2.94 1.37 4.05-.58 1.23-1.32 2.36-2.18 3.35-.28-.18-.6-.3-.95-.3-.81 0-1.45.64-1.45 1.44 0 .27.08.51.21.71l.03.05c.13.25.3.48.53.66v2.35c0 .55.45 1 1 1 1.11 0 2-.89 2-2v-3.02c0-1.76 1.42-3.18 3.17-3.18.31 0 .61.04.9.11-.19-1.01-.28-2.05-.28-3.11 0-4.97 4.03-9 9-9s9 4.03 9 9-4.03 9-9 9c-1.07 0-2.09-.1-3.06-.28v2.67c0 .28.22.5.5.5.16 0 .3-.15.3-.32l.12-.35v-2.65c-.62-.43-1.15-.97-1.52-1.6 1.05-.55 2.19-.87 3.42-.87 3.86 0 7-3.14 7-7v-1.52c0-.34.23-.6.5-.6h2.65c.87 0 1.59-.73 1.59-1.65 0-.41-.14-.79-.36-1.1z"/></svg>
+        <span>工具管理
+      </a>
+
+      <div class="group-title">对话日志</div>
+      <a href="v7_conversations.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H4V6h16v14zm-2-3H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V8h12v2z"/></svg>
+        <span>对话日志
+      </a>
+
+      <div class="group-title">数据统计</div>
+      <a href="v8_analytics.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 3h2v2H3zm0 4h2v6H3zm0 8h2v6H3zm4-10h2v10H7zm4-6h2v16h-2zm4 2h2v14h-2zm4 2h2v10h-2z"/></svg>
+        <span>数据统计
+      </a>
+
+      <div class="group-title">系统管理</div>
+      <a href="v9_system.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0-2a6 6 0 1 1 0 12 6 6 0 0 1 0-12z"/><circle cx="12" cy="12" r="1" fill="currentColor"/><path d="M19.59 7.05L18.17 5.64c.12-.45.12-.79.12-1.16 0-.19-.01-.37-.04-.56l1.47 1.47c.15 1.08-.29 1.95-.91 2.57z"/></svg>
+        <span>系统管理
+      </a>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="avatar">管</div>
+      <div class="meta">
+        <div class="name">管理员</div>
+        <div class="email">admin@example.com</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <section class="main">
+    <!-- Header/breadcrumb -->
+    <header class="header">
+      <nav class="path" aria-label="breadcrumb">
+        <a href="v1_dashboard.html">首页</a>
+        <a href="#" class="last">工作台</a>
+      </nav>
+    </header>
+
+    <main class="content">
+      <div class="page">
+        <h1>工作台</h1>
+        <p class="subtitle">欢迎回来，查看平台运行状态</p>
+
+        <!-- Stats Cards -->
+        <div class="stats">
+          <div class="stat">
+            <div class="label">今日调用量</div>
+            <div class="value" id="stat-calls">--</div>
+            <div class="trend" id="callsTrend"></div>
+          </div>
+          <div class="stat">
+            <div class="label">Token消耗</div>
+            <div class="value" id="stat-tokens">--</div>
+            <div class="trend" id="tokensTrend"></div>
+          </div>
+          <div class="stat">
+            <div class="label">费用估算</div>
+            <div class="value" id="stat-cost">--</div>
+            <div class="trend" id="costTrend"></div>
+          </div>
+          <div class="stat">
+            <div class="label">活跃Agent</div>
+            <div class="value" id="stat-agents">--</div>
+            <div class="trend" id="agentsTrend"></div>
+          </div>
+        </div>
+
+        <!-- Agent Table -->
+        <div class="table-card">
+          <h2>Agent管理</h2>
+          <div class="toolbar">
+            <div class="left">
+              <input type="text" id="search" placeholder="搜索Agent名称、类型...">
+            </div>
+            <button class="primary">创建Agent</button>
+          </div>
+          <table id="agent-table">
+            <thead>
+              <tr>
+                <th>名称</th>
+                <th>类型</th>
+                <th>状态</th>
+                <th>成功率</th>
+                <th>调用量(7天)</th>
+                <th>版本</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="pagination">
+            <div class="left"><span>共 <strong id="total-count">0</strong> 条</span></div>
+            <div class="right">
+              <span id="page-info">1 / 1</span>
+              <button id="prev" disabled>&lt;</button>
+              <button id="next" disabled>&gt;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </section>
+</div>
+
+<script>
+// Data mock based on docs markdown
+const stats = {
+  todayCalls: 12487,
+  tokenUsage: 2345678,
+  cost: 1234,
+  activeAgents: 8,
+  totalAgents: 12,
+  todayCallsTrend: 12.5,
+  tokenUsageTrend: 8.3,
+  costTrend: 5.2
+};
+
+const agents = [
+  {name:'智能客服Agent',type:'对话型',status:'running',success:98.5,calls:12847,version:'v1.3'},
+  {name:'代码审查Agent',type:'工具型',status:'running',success:97.1,calls:8234,version:'v1.2'},
+  {name:'数据分析Agent',type:'分析型',status:'stopped',success:95.2,calls:5632,version:'v1.1'},
+  {name:'翻译助手Agent',type:'创作型',status:'error',success:99.1,calls:4521,version:'v1.0'},
+  {name:'内容生成Agent',type:'创作型',status:'running',success:92.8,calls:3876,version:'v0.9'}
+];
+
+const PAGE_SIZE = 5;
+let current = 1, filtered = [];
+
+function formatNumber(num) { return num.toLocaleString(); }
+function statusBadge(s) {
+  const map = {
+    running: ['运行中', 'success-bg'],
+    stopped: ['已停止', 'default-bg'],
+    error: ['异常', 'danger-bg']
+  };
+  const [label, cls] = map[s] || ['草稿', 'warning-bg'];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function renderStats() {
+  document.getElementById('stat-calls').textContent = formatNumber(stats.todayCalls);
+  document.getElementById('callsTrend').textContent = `较昨日 +${stats.todayCallsTrend}%`;
+  document.getElementById('stat-tokens').textContent = formatNumber(stats.tokenUsage);
+  document.getElementById('tokensTrend').textContent = `较昨日 +${stats.tokenUsageTrend}%`;
+  document.getElementById('stat-cost').textContent = `¥${formatNumber(stats.cost)}`;
+  document.getElementById('costTrend').textContent = `较昨日 +${stats.costTrend}%`;
+  document.getElementById('stat-agents').textContent = `${stats.activeAgents}/${stats.totalAgents}`;
+  document.getElementById('agentsTrend').textContent = `较昨日 0`;
+}
+
+function doFilter() {
+  const term = document.getElementById('search').value.toLowerCase();
+  filtered = agents.filter(a => a.name.toLowerCase().includes(term) || a.type.toLowerCase().includes(term));
+  current = 1;
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.querySelector('#agent-table tbody');
+  const start = (current - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+  const page = filtered.slice(start, end);
+  document.getElementById('total-count').textContent = filtered.length;
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+  document.getElementById('page-info').textContent = `${current} / ${totalPages}`;
+  document.getElementById('prev').disabled = current <= 1;
+  document.getElementById('next').disabled = current >= totalPages;
+  tbody.innerHTML = page.map(a => `<tr>
+    <td>${a.name}</td>
+    <td>${a.type}</td>
+    <td>${statusBadge(a.status)}</td>
+    <td>${a.success}%</td>
+    <td>${formatNumber(a.calls)}</td>
+    <td>${a.version}</td>
+    <td class="actions">
+      <button title="${a.status === 'running' ? '停止' : '启动'}">${a.status === 'running' ? '⏸' : '▶'}</button>
+      <button title="编辑">✏</button>
+      <button class="primary" title="查看">🔍</button>
+    </td>
+  </tr>`).join('');
+}
+
+document.getElementById('prev').onclick = () => {
+  if (current > 1) {
+    current--;
+    renderTable();
+  }
+};
+
+document.getElementById('next').onclick = () => {
+  if (current < Math.ceil(filtered.length / PAGE_SIZE) || 1) {
+    current++;
+    renderTable();
+  }
+};
+
+document.getElementById('search').addEventListener('input', doFilter);
+
+renderStats();
+doFilter();
+</script>
+</body>
+</html>

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>辰光 Agent - 对话日志</title>
+<style>
+/* Layout Design Spec Based System */
+:root {
+  --sidebar-dark: #0F172A;
+  --sidebar-text: #CBD5E1;
+  --sidebar-active: #2563EB;
+  --main-bg: #F1F5F9;
+  --card: #FFFFFF;
+  --border: #E2E8F0;
+  --text: #1E293B;
+  --text-muted: #64748B;
+  --accent: #2563EB;
+  --accent-light: #DBEAFE;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --radius-lg: 8px;
+  --radius-md: 6px;
+  --radius-sm: 4px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--main-bg);color:var(--text);line-height:1.6}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+button{cursor:pointer;border:none;background:none;font:inherit}
+.app{display:flex;min-height:100vh}
+.sidebar{width:240px;background:var(--sidebar-dark);flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar-header{height:64px;display:flex;align-items:center;padding:0 20px;border-bottom:1px solid #1E293B}
+.sidebar-header .logo{display:flex;align-items:center;font-size:20px;font-weight:700;color:white}
+.sidebar-header .icon{margin-right:10px;fill:var(--accent);width:20px;height:20px}
+.sidebar-nav{flex:1;padding:16px 12px;overflow-y:auto}
+.group-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);padding:6px 12px;margin-top:16px}
+.sidebar-nav a{display:flex;align-items:center;padding:10px 16px;margin:2px 6px;border-radius:var(--radius-lg);color:var(--sidebar-text);font-size:14px;font-weight:500;transition:all .15s}
+.sidebar-nav a:hover{background:#1E2A3B}
+.sidebar-nav a.active{background:var(--sidebar-active);color:#fff}
+.sidebar-nav a.active .icon{margin-right:10px;fill:#fff}
+.sidebar-nav .icon{fill:var(--sidebar-text);margin-right:10px;width:16px;height:16px}
+.sidebar-user{height:64px;border-top:1px solid #1E293B;padding:0 20px;display:flex;align-items:center}
+.sidebar-user .avatar{width:32px;height:32px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:700;font-size:13px}
+.sidebar-user .meta{margin-left:12px}
+.sidebar-user .name{font-size:14px;font-weight:600;color:#fff}
+.sidebar-user .email{font-size:12px;color:var(--sidebar-text)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.header{height:56px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px}
+.header .path{display:flex;align-items:center;font-size:13px}
+.header .path a:not(:last-child){color:var(--text-muted)}
+.header .path a:last-child{font-weight:600;color:var(--text)}
+.header .path a:not(:last-child)::after{content:'/';margin:0 8px;color:var(--border)}
+.content{flex:1;overflow-y:auto;padding:24px}
+.page{max-width:1200px;margin:0 auto;width:100%}
+.page h1{font-size:24px;font-weight:700;margin-bottom:4px}
+.page .subtitle{color:var(--text-muted);font-size:14px;margin-bottom:20px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px}
+.stat .label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:6px}
+.stat .value{font-size:24px;font-weight:700}
+.stat .trend{font-size:12px;color:var(--success)}
+.table-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px}
+.table-card h2{font-size:18px;font-weight:600;margin-bottom:16px}
+.table-card .toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.table-card .toolbar .left{display:flex;align-items:center;gap:8px}
+.table-card .toolbar input{padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-md);width:280px;font-size:14px;outline:none}
+.table-card .toolbar input:focus{border-color:var(--accent)}
+.toolbar-filters{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.toolbar-filters .filter{border:1px solid var(--border);border-radius:var(--radius-md);padding:6px 12px;font-size:13px;background:var(--card);cursor:pointer}
+.toolbar-filters .tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{background:#F1F5F9;color:#374151;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:12px;border-bottom:1px solid var(--border);text-align:left}
+th{text-align:left;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);padding:12px 12px 8px;border-bottom:2px solid var(--border)}
+td{vertical-align:top}
+tr:hover{background:#F8FAFC}
+tr td:first-child{font-weight:500}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:500}
+.badge.default-bg{background:#F1F5F9;color:#374151}
+.badge.success-bg{background:#DCFCE7;color:#166534}
+.badge.warning-bg{background:#FEF9C3;color:#854D0E}
+.badge.danger-bg{background:#FEE2E2;color:#991B1B}
+.actions button{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:4px;color:var(--text-muted);transition:background .15s}
+.actions button:hover{background:#F1F5F9}
+.actions button.primary{background:var(--accent);color:#fff}
+.actions button.primary:hover{background:#1D4ED8}
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;color:var(--text-muted);font-size:13px}
+.pagination .left span{margin-right:8px}
+.pagination .right{display:flex;align-items:center;gap:6px}
+.pagination button{border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;background:var(--card)}
+.pagination button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pagination button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr)}.sidebar{width:64px}.sidebar-header .logo span,.sidebar-nav .group-title,.sidebar-user .meta{display:none}.sidebar-nav a{width:48px;justify-content:center;padding:12px;margin:2px 0}.sidebar-nav a.active .icon{margin:0}.sidebar-nav .icon{margin:0}.sidebar-user{padding:12px}.sidebar-user .avatar{width:32px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 2L3 7v10c0 4.4 3.6 8 9 9s9-3.6 9-9V7l-9-5z"/></svg>
+        <span>辰光 Agent</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="group-title">工作台</div>
+      <a href="v1_dashboard.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16v2H4zM4 8h16v2H4zM4 12h10v2H4zM4 16h10v2H4zM4 20h16v2H4z"/></svg>
+        <span>工作台</span>
+      </a>
+
+      <div class="group-title">Agent 管理</div>
+      <a href="v2_agents.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 2C9.24 2 7 4.24 7 7c0 2.24 1.41 4.14 3.28 4.78.27.09.42.34.42.62 0 .35-.27.64-.62.72C8.06 13.93 6 12.18 6 10 6 7.24 8.24 5 11 5c.55 0 1.08.12 1.57.33.26-.23.56-.41.89-.51C12.46 5.09 11.76 5 11 5 8.79 5 6 7.79 6 11c0 3.21 2.79 6 6 6s6-2.79 6-6c0-.76-.17-1.49-.45-2.16.34-.26.62-.58.82-.95C19.57 7.14 20 6.1 20 5c0-2.76-2.24-5-5-5-.76 0-1.49.17-2.16.45z"/><path d="M19.59 7.05L18.17 5.64c.12-.45.12-.79.12-1.16 0-.19-.01-.37-.04-.56l1.47 1.47c.15 1.08-.29 1.95-.91 2.57z"/></svg>
+        <span>Agent 管理
+      </a>
+
+      <div class="group-title">模型管理</div>
+      <a href="v3_models.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 2l7 4v6c0 3.3-2.2 6.1-5.4 7l-1.6.3c-.3.1-.6.1-.9 0l-1.6-.3C5.2 18.1 3 15.3 3 12V6l7-4z"/></svg>
+        <span>模型管理
+      </a>
+
+      <div class="group-title">Prompt 管理</div>
+      <a href="v4_prompts.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 5c0-.55.45-1 1-1h12.17l2.83 2.83c.18.18.25.43.17.66a.5.5 0 01-.64.3A1.97 1.97 0 0015 7H4V5h1zm0 4v12c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V9H4z"/></svg>
+        <span>Prompt 管理
+      </a>
+
+      <div class="group-title">知识库</div>
+      <a href="v5_kb.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 6c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V6zm10 0h4v12h-4V6zM4 8h4v12H6c-1.1 0-2-.9-2-2V8zm2 0v12"/></svg>
+        <span>知识库管理
+      </a>
+
+      <div class="group-title">工具管理</div>
+      <a href="v6_tools.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.57-.99.57-1.65 0-1.05-.95-1.95-2.08-1.95-.63 0-1.23.28-1.57.75-.35-.02-.7-.03-1.05-.03-3.45 0-6.25 2.8-6.25 6.25 0 1.51.5 2.94 1.37 4.05-.58 1.23-1.32 2.36-2.18 3.35-.28-.18-.6-.3-.95-.3-.81 0-1.45.64-1.45 1.44 0 .27.08.51.21.71l.03.05c.13.25.3.48.53.66v2.35c0 .55.45 1 1 1 1.11 0 2-.89 2-2v-3.02c0-1.76 1.42-3.18 3.17-3.18.31 0 .61.04.9-.11-.19-1.01-.28-2.05-.28-3.11 0-4.97 4.03-9 9-9s9 4.03 9 9-4.03 9-9 9c-1.07 0-2.09-.1-3.06-.28v2.67c0 .28.22.5.5.5.16 0 .3-.15.3-.32l.12-.35v-2.65c-.62-.43-1.15-.97-1.52-1.6 1.05-.55 2.19-.87 3.42-.87 3.86 0 7-3.14 7-7v-1.52c0-.34.23-.6.5-.6h2.65c.87 0 1.59-.73 1.59-1.65 0-.41-.14-.79-.36-1.1z"/></svg>
+        <span>工具管理</span>
+      </a>
+
+      <div class="group-title">对话日志</div>
+      <a href="v7_conversations.html" class="active">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H4V6h16v14zm-2-3H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V8h12v2z"/></svg>
+        <span>对话日志</span>
+      </a>
+
+      <div class="group-title">数据统计</div>
+      <a href="v8_analytics.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 3h2v2H3zm0 4h2v6H3zm0 8h2v6H3zm4-10h2v10H7zm4-6h2v16h-2zm4 2h2v14h-2zm4 2h2v10h-2z"/></svg>
+        <span>数据统计
+      </a>
+
+      <div class="group-title">系统管理</div>
+      <a href="v9_system.html">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0-2a6 6 0 1 1 0 12 6 6 0 0 1 0-12z"/><circle cx="12" cy="12" r="1" fill="currentColor"/><path d="M19.59 7.05L18.17 5.64c.12-.45.12-.79.12-1.16 0-.19-.01-.37-.04-.56l1.47 1.47c.15 1.08-.29 1.95-.91 2.57z"/></svg>
+        <span>系统管理
+      </a>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="avatar">管</div>
+      <div class="meta">
+        <div class="name">管理员</div>
+        <div class="email">admin@example.com</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <section class="main">
+    <!-- Header/breadcrumb -->
+    <header class="header">
+      <nav class="path" aria-label="breadcrumb">
+        <a href="v1_dashboard.html">首页</a>
+        <a href="#" class="last">对话日志</a>
+      </nav>
+    </header>
+
+    <main class="content">
+      <div class="page">
+        <div class="toolbar">
+          <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
+            <div>
+              <h1>对话日志</h1>
+              <p class="subtitle">查看和分析对话记录</p>
+            </div>
+            <button class="primary" id="exportBtn" style="padding:8px 16px;border-radius:var(--radius-md);font-size:14px">导出</button>
+          </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="stats">
+          <div class="stat">
+            <div class="label">对话总数</div>
+            <div class="value" id="stat-total">--</div>
+            <div class="trend">今日 1,247</div>
+          </div>
+          <div class="stat">
+            <div class="label">平均轮数</div>
+            <div class="value" id="stat-turns">--</div>
+            <div class="trend">4.2轮</div>
+          </div>
+          <div class="stat">
+            <div class="label">平均耗时</div>
+            <div class="value" id="stat-duration">--</div>
+            <div class="trend">3.5s</div>
+          </div>
+          <div class="stat">
+            <div class="label">满意度</div>
+            <div class="value" id="stat-satisfaction">--</div>
+            <div class="trend">92%</div>
+          </div>
+        </div>
+
+        <!-- Conversations Table -->
+        <div class="table-card">
+          <h2>对话列表</h2>
+          <div class="toolbar-filters">
+            <div class="left">
+              <input type="text" id="search" placeholder="搜索Agent或用户ID...">
+              <select id="agentFilter" class="filter">
+                <option value="all">全部Agent</option>
+                <option value="智能客服Agent">智能客服Agent</option>
+                <option value="代码审查Agent">代码审查Agent</option>
+                <option value="数据分析Agent">数据分析Agent</option>
+                <option value="翻译助手Agent">翻译助手Agent</option>
+                <option value="内容生成Agent">内容生成Agent</option>
+              </select>
+              <select id="statusFilter" class="filter">
+                <option value="all">全部状态</option>
+                <option value="completed">已完成</option>
+                <option value="active">进行中</option>
+                <option value="error">异常</option>
+              </select>
+              <select id="timeFilter" class="filter">
+                <option value="all">全部时间</option>
+                <option value="today">今天</option>
+                <option value="yesterday">昨天</option>
+                <option value="week">最近7天</option>
+              </select>
+              <select id="satisfactionFilter" class="filter">
+                <option value="all">全部满意度</option>
+                <option value="positive">满意</option>
+                <option value="negative">不满意</option>
+                <option value="none">未评价</option>
+              </select>
+            </div>
+          </div>
+          <table id="conv-table">
+            <thead>
+              <tr>
+                <th>会话ID</th>
+                <th>Agent</th>
+                <th>用户</th>
+                <th>对话轮数</th>
+                <th>状态</th>
+                <th>Token消耗</th>
+                <th>耗时</th>
+                <th>满意度</th>
+                <th>标注状态</th>
+                <th>开始时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="pagination">
+            <div class="left"><span>共 <strong id="total-count">0</strong> 条</span></div>
+            <div class="right">
+              <span id="page-info">1 / 1</span>
+              <button id="prev" disabled>&lt;</button>
+              <button id="next" disabled>&gt;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </section>
+</div>
+
+<script>
+const conversations = [
+  {id:'#12847',agent:'智能客服Agent',user:'user_1',turns:4,tokens:800,cost:0.80,time:32,status:'completed',satisfaction:'positive',annotated:false,start:'2026-09-29 10:12'},
+  {id:'#12846',agent:'代码审查Agent',user:'user_2',turns:6,tokens:1230,cost:1.20,time:48,status:'completed',satisfaction:'negative',annotated:true,start:'2026-09-29 11:03'},
+  {id:'#12845',agent:'数据分析Agent',user:'user_3',turns:3,tokens:420,cost:0.40,time:24,status:'active',satisfaction:'positive',annotated:false,start:'2026-09-29 12:20'},
+  {id:'#12844',agent:'智能客服Agent',user:'user_4',turns:2,tokens:320,cost:0.30,time:18,status:'error',satisfaction:'negative',annotated:false,start:'2026-09-29 13:45'},
+  {id:'#12843',agent:'翻译助手Agent',user:'user_1',turns:1,tokens:180,cost:0.15,time:12,status:'completed',satisfaction:'none',annotated:false,start:'2026-09-29 13:30'},
+  {id:'#12842',agent:'内容生成Agent',user:'user_5',turns:8,tokens:2100,cost:2.10,time:56,status:'completed',satisfaction:'positive',annotated:true,start:'2026-09-29 14:15'},
+  {id:'#12841',agent:'智能客服Agent',user:'user_6',turns:5,tokens:950,cost:0.90,time:41,status:'completed',satisfaction:'positive',annotated:false,start:'2026-09-29 14:32'},
+  {id:'#12840',agent:'代码审查Agent',user:'user_7',turns:4,tokens:780,cost:0.75,time:35,status:'active',satisfaction:'none',annotated:false,start:'2026-09-29 14:45'},
+  {id:'#12839',agent:'数据分析Agent',user:'user_2',turns:6,tokens:1450,cost:1.40,time:52,status:'completed',satisfaction:'positive',annotated:true,start:'2026-09-29 15:10'},
+  {id:'#12838',agent:'翻译助手Agent',user:'user_8',turns:2,tokens:280,cost:0.28,time:15,status:'completed',satisfaction:'none',annotated:false,start:'2026-09-29 15:25'},
+  {id:'#12837',agent:'内容生成Agent',user:'user_3',turns:7,tokens:1890,cost:1.80,time:48,status:'error',satisfaction:'negative',annotated:true,start:'2026-09-29 15:40'},
+  {id:'#12836',agent:'智能客服Agent',user:'user_9',turns:3,tokens:560,cost:0.55,time:28,status:'completed',satisfaction:'positive',annotated:false,start:'2026-09-29 15:55'},
+  {id:'#12835',agent:'代码审查Agent',user:'user_1',turns:5,tokens:1120,cost:1.10,time:45,status:'completed',satisfaction:'none',annotated:false,start:'2026-09-29 16:10'},
+  {id:'#12834',agent:'数据分析Agent',user:'user_4',turns:9,tokens:2340,cost:2.30,time:62,status:'completed',satisfaction:'positive',annotated:false,start:'2026-09-29 16:25'},
+  {id:'#12833',agent:'翻译助手Agent',user:'user_5',turns:1,tokens:150,cost:0.12,time:10,status:'completed',satisfaction:'positive',annotated:false,start:'2026-09-29 16:40'},
+  {id:'#12832',agent:'内容生成Agent',user:'user_6',turns:6,tokens:1670,cost:1.60,time:50,status:'completed',satisfaction:'negative',annotated:true,start:'2026-09-29 16:55'},
+  {id:'#12831',agent:'智能客服Agent',user:'user_7',turns:4,tokens:890,cost:0.85,time:38,status:'active',satisfaction:'none',annotated:false,start:'2026-09-29 17:10'},
+  {id:'#12830',agent:'代码审查Agent',user:'user_8',turns:5,tokens:1020,cost:0.98,time:42,status:'completed',satisfaction:'positive',annotated:false,start:'2026-09-29 17:25'},
+  {id:'#12829',agent:'数据分析Agent',user:'user_9',turns:3,tokens:480,cost:0.45,time:22,status:'completed',satisfaction:'none',annotated:false,start:'2026-09-29 17:40'},
+  {id:'#12828',agent:'翻译助手Agent',user:'user_2',turns:2,tokens:320,cost:0.28,time:14,status:'completed',satisfaction:'positive',annotated:true,start:'2026-09-29 17:55'},
+  {id:'#12827',agent:'内容生成Agent',user:'user_3',turns:8,tokens:2050,cost:1.95,time:54,status:'error',satisfaction:'negative',annotated:false,start:'2026-09-29 18:10'},
+  {id:'#12826',agent:'智能客服Agent',user:'user_4',turns:4,tokens:780,cost:0.75,time:33,status:'completed',satisfaction:'positive',annotated:false,start:'2026-09-29 18:25'},
+  {id:'#12825',agent:'代码审查Agent',user:'user_5',turns:6,tokens:1340,cost:1.25,time:49,status:'completed',satisfaction:'none',annotated:false,start:'2026-09-29 18:40'},
+  {id:'#12824',agent:'数据分析Agent',user:'user_6',turns:5,tokens:980,cost:0.92,time:40,status:'completed',satisfaction:'positive',annotated:false,start:'2026-09-29 18:55'},
+  {id:'#12823',agent:'翻译助手Agent',user:'user_7',turns:2,tokens:260,cost:0.22,time:13,status:'completed',satisfaction:'none',annotated:false,start:'2026-09-29 19:10'},
+  {id:'#12822',agent:'内容生成Agent',user:'user_8',turns:7,tokens:1890,cost:1.78,time:51,status:'active',satisfaction:'positive',annotated:true,start:'2026-09-29 19:25'},
+  {id:'#12821',agent:'智能客服Agent',user:'user_9',turns:3,tokens:520,cost:0.50,time:26,status:'completed',satisfaction:'none',annotated:false,start:'2026-09-29 19:40'},
+  {id:'#12820',agent:'代码审查Agent',user:'user_1',turns:4,tokens:860,cost:0.82,time:37,status:'completed',satisfaction:'positive',annotated:false,start:'2026-09-29 19:55'},
+  {id:'#12819',agent:'数据分析Agent',user:'user_2',turns:6,tokens:1280,cost:1.20,time:47,status:'completed',satisfaction:'negative',annotated:false,start:'2026-09-29 20:10'},
+  {id:'#12818',agent:'翻译助手Agent',user:'user_3',turns:1,tokens:140,cost:0.10,time:8,status:'completed',satisfaction:'none',annotated:false,start:'2026-09-29 20:25'},
+  {id:'#12817',agent:'内容生成Agent',user:'user_4',turns:9,tokens:2450,cost:2.40,time:60,status:'completed',satisfaction:'positive',annotated:true,start:'2026-09-29 20:40'},
+  {id:'#12816',agent:'智能客服Agent',user:'user_5',turns:5,tokens:980,cost:0.95,time:41,status:'error',satisfaction:'none',annotated:false,start:'2026-09-29 20:55'},
+  {id:'#12815',agent:'代码审查Agent',user:'user_6',turns:4,tokens:790,cost:0.76,time:34,status:'completed',satisfaction:'positive',annotated:false,start:'2026-09-29 21:10'},
+  {id:'#12814',agent:'数据分析Agent',user:'user_7',turns:3,tokens:450,cost:0.42,time:20,status:'completed',satisfaction:'none',annotated:false,start:'2026-09-29 21:25'},
+  {id:'#12813',agent:'翻译助手Agent',user:'user_8',turns:2,tokens:290,cost:0.26,time:12,status:'completed',satisfaction:'positive',annotated:false,start:'2026-09-29 21:40'},
+  {id:'#12812',agent:'内容生成Agent',user:'user_9',turns:6,tokens:1560,cost:1.48,time:46,status:'completed',satisfaction:'none',annotated:true,start:'2026-09-29 21:55'},
+  {id:'#12811',agent:'智能客服Agent',user:'user_1',turns:4,tokens:820,cost:0.78,time:32,status:'completed',satisfaction:'positive',annotated:false,start:'2026-09-29 22:10'},
+  {id:'#12810',agent:'代码审查Agent',user:'user_2',turns:5,tokens:1080,cost:1.02,time:43,status:'active',satisfaction:'none',annotated:false,start:'2026-09-29 22:25'},
+  {id:'#12809',agent:'数据分析Agent',user:'user_3',turns:7,tokens:1780,cost:1.68,time:53,status:'completed',satisfaction:'negative',annotated:false,start:'2026-09-29 22:40'},
+  {id:'#12808',agent:'翻译助手Agent',user:'user_4',turns:1,tokens:160,cost:0.14,time:9,status:'completed',satisfaction:'positive',annotated:false,start:'2026-09-29 22:55'}
+];
+
+const PAGE_SIZE = 20;
+let current = 1;
+let filtered = [];
+
+const statusMap = {completed:['已完成','success-bg'],active:['进行中','warning-bg'],error:['异常','danger-bg']};
+const satisfactionMap = {positive:['满意','success-bg'],negative:['不满意','danger-bg'],none:['未评价','default-bg']};
+const annotationMap = {true:['已标注','success-bg'],false:['未标注','default-bg']};
+
+function statusBadge(s){const m=statusMap[s]||['未知','default-bg'];return `<span class="badge ${m[1]}">${m[0]}</span>`;}
+function satisfactionBadge(s){const m=satisfactionMap[s]||['未评价','default-bg'];return `<span class="badge ${m[1]}">${m[0]}</span>`;}
+function annotationBadge(a){const m=annotationMap[a]||['未标注','default-bg'];return `<span class="badge ${m[1]}">${m[0]}</span>`;}
+function formatTime(ms){const s=Math.floor(ms/1000);return s+'s';}
+function formatCost(c){return '¥'+c.toFixed(2);}
+
+function renderStats(){
+  document.getElementById('stat-total').textContent=conversations.length;
+  const avgTurns=conversations.reduce((s,c)=>s+c.turns,0)/conversations.length;
+  document.getElementById('stat-turns').textContent=avgTurns.toFixed(1)+'轮';
+  const avgTime=conversations.reduce((s,c)=>s+c.time,0)/conversations.length;
+  document.getElementById('stat-duration').textContent=avgTime.toFixed(1)+'s';
+  const satisfied=conversations.filter(c=>c.satisfaction==='positive').length/conversations.filter(c=>c.satisfaction!=='none').length;
+  document.getElementById('stat-satisfaction').textContent=(satisfied*100).toFixed(0)+'%';
+}
+
+function doFilter(){
+  const term=document.getElementById('search').value.toLowerCase();
+  const agentF=document.getElementById('agentFilter').value;
+  const statusF=document.getElementById('statusFilter').value;
+  const timeF=document.getElementById('timeFilter').value;
+  const satF=document.getElementById('satisfactionFilter').value;
+  filtered=conversations.filter(c=>{
+    const matchTerm=c.id.toLowerCase().includes(term)||c.agent.toLowerCase().includes(term)||c.user.toLowerCase().includes(term);
+    const matchAgent=agentF==='all'||c.agent===agentF;
+    const matchStatus=statusF==='all'||c.status===statusF;
+    const matchSat=satF==='all'||c.satisfaction===satF;
+    return matchTerm&&matchAgent&&matchStatus&&matchSat;
+  });
+  current=1;
+  renderTable();
+}
+
+function renderTable(){
+  const tbody=document.querySelector('#conv-table tbody');
+  const start=(current-1)*PAGE_SIZE;
+  const end=start+PAGE_SIZE;
+  const page=filtered.slice(start,end);
+  document.getElementById('total-count').textContent=filtered.length;
+  const totalPages=Math.ceil(filtered.length/PAGE_SIZE)||1;
+  document.getElementById('page-info').textContent=`${current} / ${totalPages}`;
+  document.getElementById('prev').disabled=current<=1;
+  document.getElementById('next').disabled=current>=totalPages;
+  tbody.innerHTML=page.map(c=>`<tr>
+    <td class="font-mono" style="font-size:12px">${c.id}</td>
+    <td>${c.agent}</td>
+    <td>${c.user}</td>
+    <td>${c.turns}</td>
+    <td>${statusBadge(c.status)}</td>
+    <td>${c.tokens.toLocaleString()}</td>
+    <td>${formatTime(c.time)}</td>
+    <td>${satisfactionBadge(c.satisfaction)}</td>
+    <td>${annotationBadge(c.annotated)}</td>
+    <td>${c.start}</td>
+    <td class="actions">
+      <button title="查看详情">🔍</button>
+      <button title="标注">🏷</button>
+      <button class="primary" title="导出">📤</button>
+    </td>
+  </tr>`).join('');
+}
+
+document.getElementById('prev').onclick=()=>{if(current>1){current--;renderTable();}};
+document.getElementById('next').onclick=()=>{const tp=Math.ceil(filtered.length/PAGE_SIZE)||1;if(current<tp){current++;renderTable();}};
+document.getElementById('search').addEventListener('input',doFilter);
+document.getElementById('agentFilter').addEventListener('change',doFilter);
+document.getElementById('statusFilter').addEventListener('change',doFilter);
+document.getElementById('timeFilter').addEventListener('change',doFilter);
+document.getElementById('satisfactionFilter').addEventListener('change',doFilter);
+document.getElementById('exportBtn').onclick=()=>{alert('导出功能开发中');};
+
+renderStats();
+doFilter();
+</script>
+</body>
+</html>
