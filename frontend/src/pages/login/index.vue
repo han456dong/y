@@ -29,6 +29,7 @@
         <div class="login-form-wrapper">
           <h2 class="login-title">欢迎登录</h2>
           <p class="login-subtitle">请输入您的账号和密码</p>
+          <p class="login-demo-hint">演示账号：admin / 123456</p>
 
           <el-form
             ref="formRef"
@@ -63,7 +64,7 @@
             </el-form-item>
 
             <!-- 验证码 -->
-            <el-form-item prop="captcha" v-if="showCaptcha">
+            <el-form-item prop="captcha">
               <div class="captcha-row">
                 <el-input
                   v-model="formData.captcha"
@@ -72,7 +73,7 @@
                   :prefix-icon="Key"
                   clearable
                 />
-                <div class="captcha-image" @click="refreshCaptcha">
+                <div class="captcha-image" @click="refreshCaptcha" title="点击刷新验证码">
                   <img v-if="captchaImage" :src="captchaImage" alt="验证码" />
                   <span v-else>点击获取</span>
                 </div>
@@ -141,9 +142,8 @@ const authStore = useAuthStore()
 
 const formRef = ref<FormInstance>()
 const loading = ref(false)
-const showCaptcha = ref(false)
 const captchaImage = ref('')
-const captchaId = ref('')
+const captchaKey = ref('')
 
 // 表单数据
 const formData = reactive({
@@ -177,15 +177,14 @@ const features = [
   { icon: Connection, title: '工具编排', description: '灵活的工具链编排能力' },
 ]
 
-// 获取验证码
+// 获取验证码（GET /api/v1/captcha）
 const refreshCaptcha = async () => {
   try {
     const data = await getCaptchaApi()
-    captchaId.value = data.captcha_id
+    captchaKey.value = data.key
     captchaImage.value = data.image
-    showCaptcha.value = true
   } catch {
-    // 验证码获取失败
+    // 验证码获取失败，用户可点击重试
   }
 }
 
@@ -201,9 +200,8 @@ const handleLogin = async () => {
       await authStore.login({
         username: formData.username,
         password: formData.password,
-        captcha: showCaptcha.value ? formData.captcha : undefined,
-        captcha_id: showCaptcha.value ? captchaId.value : undefined,
-        remember_me: formData.remember_me,
+        captcha_key: captchaKey.value,
+        captcha_code: formData.captcha,
       })
 
       ElMessage.success('登录成功')
@@ -234,7 +232,10 @@ onMounted(() => {
   // 如果已登录，直接跳转
   if (authStore.isAuthenticated) {
     router.push('/dashboard')
+    return
   }
+  // 初始化验证码
+  refreshCaptcha()
 })
 </script>
 
@@ -244,7 +245,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #263445 0%, #2c3e50 55%, #1f2a38 100%);
   position: relative;
   overflow: hidden;
 
@@ -282,7 +283,7 @@ onMounted(() => {
 // 左侧品牌展示
 .login-brand {
   flex: 1;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(150deg, #2c3e50 0%, #34495e 60%, #3a4f63 100%);
   padding: 60px 40px;
   color: white;
   display: flex;
@@ -376,7 +377,18 @@ onMounted(() => {
   .login-subtitle {
     font-size: 14px;
     color: #909399;
-    margin: 0 0 32px;
+    margin: 0 0 8px;
+  }
+
+  .login-demo-hint {
+    font-size: 12px;
+    color: #b07d5f;
+    background: #fdf3ec;
+    border: 1px solid #f3d9c8;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin: 0 0 24px;
+    display: inline-block;
   }
 
   .login-form {

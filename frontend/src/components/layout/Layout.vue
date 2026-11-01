@@ -112,7 +112,7 @@
           <!-- 用户下拉菜单 -->
           <el-dropdown trigger="click">
             <div class="user-dropdown-trigger">
-              <el-avatar :size="32" :src="authStore.userAvatar" class="user-avatar" />
+              <el-avatar :size="32" class="user-avatar">{{ avatarText }}</el-avatar>
               <span v-if="!isCollapsed" class="username">{{ authStore.userName }}</span>
               <ArrowDown v-if="!isCollapsed" class="dropdown-arrow" />
             </div>
@@ -183,6 +183,9 @@ const contentRef = ref<HTMLElement>()
 // 应用配置
 const appTitle = import.meta.env.VITE_APP_TITLE || '辰光Agent平台'
 const appVersion = import.meta.env.VITE_APP_VERSION || '1.0.0'
+
+// 用户头像文本
+const avatarText = computed(() => (authStore.userName || '?').slice(0, 1).toUpperCase())
 
 // 计算属性
 const isCollapsed = computed(() => !appStore.sidebar.opened)

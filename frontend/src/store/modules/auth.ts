@@ -5,13 +5,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authService } from '@/services/auth'
-import type { UserInfo, LoginParams } from '@/apis/modules/auth'
+import type { LoginParams } from '@/apis/modules/auth'
+import type { UserInfo } from '@/apis/modules/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   // 状态
   const user = ref<UserInfo | null>(null)
   const accessToken = ref<string | null>(null)
-  const refreshToken = ref<string | null>(null)
   const isAuthenticated = ref(false)
   const permissions = ref<string[]>([])
   const roles = ref<string[]>([])
@@ -33,8 +33,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAdmin = computed(() => hasRole.value(['admin', 'super_admin', 'administrator']))
 
-  const userAvatar = computed(() => user.value?.avatar || '/default-avatar.png')
-  const userName = computed(() => user.value?.full_name || user.value?.username || '未知用户')
+  const userName = computed(() => user.value?.username || '未知用户')
+  const userEmail = computed(() => user.value?.email || '')
 
   // Actions
   async function login(params: LoginParams) {
@@ -44,7 +44,6 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authService.login(params)
       if (response) {
-        // 同步状态
         syncFromService()
       }
       return response
@@ -61,7 +60,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       await authService.logout(redirect)
-      // 同步状态（会重置为初始值）
       syncFromService()
     } catch (err) {
       error.value = err as Error
@@ -90,35 +88,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function changePassword(data: { old_password: string; new_password: string; confirm_password: string }) {
-    loading.value = true
-    error.value = null
-
-    try {
-      const result = await authService.changePassword(data)
-      return result
-    } catch (err) {
-      error.value = err as Error
-      return false
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function refreshAccessToken() {
-    const result = await authService.refreshAccessToken()
-    if (result) {
-      syncFromService()
-    }
-    return result
-  }
-
   // 从Service同步状态
   function syncFromService() {
     const state = authService.getState()
     user.value = state.user
     accessToken.value = state.accessToken
-    refreshToken.value = state.refreshToken
     isAuthenticated.value = state.isAuthenticated
     permissions.value = state.permissions
     roles.value = state.roles
@@ -128,7 +102,6 @@ export const useAuthStore = defineStore('auth', () => {
   function reset() {
     user.value = null
     accessToken.value = null
-    refreshToken.value = null
     isAuthenticated.value = false
     permissions.value = []
     roles.value = []
@@ -145,7 +118,6 @@ export const useAuthStore = defineStore('auth', () => {
     // 状态
     user,
     accessToken,
-    refreshToken,
     isAuthenticated,
     permissions,
     roles,
@@ -155,14 +127,12 @@ export const useAuthStore = defineStore('auth', () => {
     hasPermission,
     hasRole,
     isAdmin,
-    userAvatar,
     userName,
+    userEmail,
     // Actions
     login,
     logout,
     fetchUserInfo,
-    changePassword,
-    refreshAccessToken,
     syncFromService,
     reset,
     initialize,

@@ -63,7 +63,7 @@ describe('路由层 - 权限过滤', () => {
     expect(monitorRoute).toBeUndefined()
   })
 
-  it('只有用户管理权限时只看到用户管理', () => {
+  it('只有用户管理权限时只看到概览与用户管理', () => {
     const permissions = ['system:user:view']
     const filtered = filterRoutesByPermission(asyncRoutes, permissions)
 
@@ -71,10 +71,13 @@ describe('路由层 - 权限过滤', () => {
     const systemRoute = filtered.find((r) => r.path === '/system')
     expect(systemRoute).toBeDefined()
 
-    // 检查子路由只有用户管理
-    const children = systemRoute!.children!
-    expect(children.length).toBe(1)
-    expect(children[0].path).toBe('user')
+    const childPaths = systemRoute!.children!.map((c) => c.path)
+    // 授权的页面可见
+    expect(childPaths).toContain('overview')
+    expect(childPaths).toContain('user')
+    // 未授权的 RBAC 页面被过滤
+    expect(childPaths).not.toContain('role')
+    expect(childPaths).not.toContain('permission')
   })
 })
 

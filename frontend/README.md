@@ -36,9 +36,9 @@ components（普通组件 / 公共组件，被 pages 复用）
 | 目录 | 职责 | 示例 |
 |---|---|---|
 | `src/apis/` | Axios 实例、拦截器、请求方法封装；按业务模块拆分接口定义与类型 | `apis/index.ts`、`apis/modules/user.ts` |
-| `src/services/` | 业务逻辑：状态编排、分页、缓存、错误处理；不直接操作 UI | `services/base.ts`（通用 CRUD）、`services/auth.ts`、`services/user.ts` |
+| `src/services/` | 业务逻辑：状态编排、分页、缓存、错误处理；不直接操作 UI | `services/auth.ts`、`services/rbac/*`（用户/角色/权限） |
 | `src/router/` | 路由表、动态路由权限过滤、全局守卫、导航工具 | `router/routes.ts`、`router/index.ts`、`router/guards.ts` |
-| `src/store/` | Pinia Store：跨页面共享状态与 Actions | `store/modules/auth.ts`、`app.ts`、`settings.ts` |
+| `src/store/` | Pinia Store：跨页面共享状态与 Actions | `store/modules/auth.ts`、`app.ts`、`settings.ts`、`rbac.ts` |
 | `src/pages/` | 页面级组件，按业务模块组织 | `pages/login`、`pages/dashboard`、`pages/system/user` |
 | `src/components/` | 公共组件与布局组件 | `components/layout/*`、`components/common/PageContainer.vue` |
 
@@ -142,8 +142,23 @@ npm run test:coverage
 测试报告见根目录 [`docs/tests/MOCK_TEST_REPORT.md`](../docs/tests/MOCK_TEST_REPORT.md)，
 覆盖率 HTML 见 [`docs/tests/coverage/index.html`](../docs/tests/coverage/index.html)。
 
-- 6 个测试文件，92 个用例，全部通过
-- 语句覆盖率 62.04%，行覆盖率 62.32%
+RBAC 模块专项报告与覆盖率见 [`docs/tests/rbac/RBAC_TEST_REPORT.md`](../docs/tests/rbac/RBAC_TEST_REPORT.md)。
+
+- 7 个测试文件，157 个用例，全部通过
+- RBAC 相关 23 个接口端点 100% 覆盖
+- 语句覆盖率 64.38%，行覆盖率 64.95%
+
+## RBAC 模块
+
+| 页面 | 路由 | 能力 |
+|---|---|---|
+| 系统概览 | `/system/overview` | 用户/角色/权限统计、模块入口、权限模型说明 |
+| 用户管理 | `/system/user` | 搜索、分页、创建用户、查看详情、分配角色、CSV 导出 |
+| 角色管理 | `/system/role` | 搜索、分页、CRUD、按模块分配权限 |
+| 权限管理 | `/system/permission` | 搜索、分页、CRUD、模块标签与统计 |
+
+接口严格对齐 `docs/openapi.json` 的 `/api/v1/*`：登录与验证码、用户（列表/搜索/创建/详情/角色）、
+角色（CRUD/授权）、权限（CRUD）。Mock 账号：`admin / 123456`（验证码在图片中直接显示，便于调试）。
 
 ## 路由与权限
 

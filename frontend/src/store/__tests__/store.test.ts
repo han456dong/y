@@ -7,11 +7,15 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useAuthStore } from '@/store/modules/auth'
 import { useAppStore } from '@/store/modules/app'
 import { useSettingsStore } from '@/store/modules/settings'
+import { useRbacStore } from '@/store/modules/rbac'
+import { authService } from '@/services/auth'
+import { loginParams } from '@/test/helpers'
 
 describe('Store层 - AuthStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()
+    authService.reset()
   })
 
   it('初始状态', () => {
@@ -23,34 +27,22 @@ describe('Store层 - AuthStore', () => {
 
   it('登录成功', async () => {
     const store = useAuthStore()
-    await store.login({
-      username: 'admin',
-      password: '123456',
-    })
+    await store.login(await loginParams())
 
     expect(store.isAuthenticated).toBe(true)
-    expect(store.user).toBeDefined()
     expect(store.user?.username).toBe('admin')
+    expect(store.roles).toContain('super_admin')
   })
 
   it('登录失败', async () => {
     const store = useAuthStore()
-    await expect(
-      store.login({
-        username: 'admin',
-        password: 'wrong',
-      })
-    ).rejects.toThrow()
-
+    await expect(store.login(await loginParams('admin', 'wrong'))).rejects.toThrow()
     expect(store.isAuthenticated).toBe(false)
   })
 
   it('登出', async () => {
     const store = useAuthStore()
-    await store.login({
-      username: 'admin',
-      password: '123456',
-    })
+    await store.login(await loginParams())
     expect(store.isAuthenticated).toBe(true)
 
     await store.logout(false)
@@ -58,14 +50,23 @@ describe('Store层 - AuthStore', () => {
     expect(store.user).toBeNull()
   })
 
-  it('计算属性 - 用户名', async () => {
+  it('计算属性 - 用户信息与权限', async () => {
     const store = useAuthStore()
-    await store.login({
-      username: 'admin',
-      password: '123456',
-    })
+    await store.login(await loginParams())
 
-    expect(store.userName).toBe('系统管理员')
+    expect(store.userName).toBe('admin')
+    expect(store.userEmail).toBe('admin@chenguang.com')
+    expect(store.hasPermission('system:role:view')).toBe(true)
+    expect(store.hasRole('super_admin')).toBe(true)
+    expect(store.isAdmin).toBe(true)
+  })
+
+  it('reset 清空状态', async () => {
+    const store = useAuthStore()
+    await store.login(await loginParams())
+    store.reset()
+    expect(store.isAuthenticated).toBe(false)
+    expect(store.permissions).toEqual([])
   })
 })
 
@@ -133,10 +134,10 @@ describe('Store层 - AppStore', () => {
     store.addVisitedView({ title: '角色', path: '/system/role', closable: true })
 
     store.closeOtherViews('/system/user')
-    expect(store.tagsView.visitedViews.length).toBe(2) // 首页 + 用户
+    expect(store.tagsView.visitedViews.length).toBe(2)
 
     store.closeAllViews()
-    expect(store.tagsView.visitedViews.length).toBe(1) // 仅保留不可关闭的首页
+    expect(store.tagsView.visitedViews.length).toBe(1)
   })
 
   it('缓存视图管理', () => {
@@ -248,5 +249,78 @@ describe('Store层 - SettingsStore', () => {
     store.updateUI({ compactMode: true })
     store.loadFromStorage()
     expect(store.settings.ui.compactMode).toBe(true)
+  })
+})
+
+describe('Store层 - RbacStore', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('加载角色选项并缓存', async () => {
+    const store = useRbacStore()
+    const roles = await store.loadRoleOptions()
+    expect(roles.length).toBe(4)
+    expect(store.roleOptions.length).toBe(4)
+
+    const cached = await store.loadRoleOptions()
+    expect(cached).toBe(roles)
+  })
+
+  it('强制刷新角色选项', async () => {
+    const store = useRbacStore()
+    await store.loadRoleOptions()
+    const refreshed = await store.loadRoleOptions(true)
+    expect(refreshed.length).toBe(4)
+  })
+
+  it('加载权限选项并缓存', async () => {
+    const store = useRbacStore()
+    const permissions = await store.loadPermissionOptions()
+    expect(permissions.length).toBe(15)
+    expect(store.permissionOptions.length).toBe(15)
+  })
+
+  it('roleMap / permissionMap 索引', async () => {
+    const store = useRbacStore()
+    await store.loadRoleOptions()
+    await store.loadPermissionOptions()
+
+    expect(store.roleMap.get(1)?.code).toBe('super_admin')
+    expect(store.permissionMap.get(1)?.code).toBe('dashboard:view')
+  })
+
+  it('加载概览统计', async () => {
+    const store = useRbacStore()
+    const stats = await store.loadStats()
+
+    expect(stats.users).toBe(5)
+    expect(stats.roles).toBe(4)
+    expect(stats.permissions).toBe(15)
+    expect(stats.activeUsers).toBe(4)
+    expect(store.statsLoading).toBe(false)
+  })
+
+  it('invalidate 清空指定缓存', async () => {
+    const store = useRbacStore()
+    await store.loadRoleOptions()
+    await store.loadPermissionOptions()
+
+    store.invalidate('roles')
+    expect(store.roleOptions.length).toBe(0)
+    expect(store.permissionOptions.length).toBe(15)
+
+    store.invalidate('all')
+    expect(store.permissionOptions.length).toBe(0)
+  })
+
+  it('reset 重置全部状态', async () => {
+    const store = useRbacStore()
+    await store.loadRoleOptions()
+    await store.loadStats()
+    store.reset()
+
+    expect(store.roleOptions).toEqual([])
+    expect(store.stats.users).toBe(0)
   })
 })

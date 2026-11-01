@@ -1,285 +1,362 @@
 <template>
-  <PageContainer title="用户管理" subtitle="管理系统用户账号和权限">
-    <!-- 搜索表单 -->
-    <SearchForm
-      v-model="searchParams"
-      :loading="loading"
-      @search="handleSearch"
-      @reset="handleReset"
-    >
+  <PageContainer title="用户管理" subtitle="创建用户账号并为用户分配角色">
+    <template #actions>
+      <el-button type="primary" @click="openCreateDialog">
+        <Plus /> 新建用户
+      </el-button>
+    </template>
+
+    <!-- 搜索 -->
+    <SearchForm v-model="searchParams" :loading="userService.loading.value" @search="handleSearch" @reset="handleReset">
       <template #fields="{ form, setField }">
         <el-form-item label="关键字">
           <el-input
             :model-value="form.keyword"
-            placeholder="用户名/邮箱/姓名"
+            placeholder="用户名 / 邮箱"
             clearable
             @update:model-value="(v) => setField('keyword', v)"
+            @keyup.enter="handleSearch"
           />
         </el-form-item>
-        <el-form-item label="状态">
-          <el-select
-            :model-value="form.status"
-            placeholder="选择状态"
-            clearable
-            @update:model-value="(v) => setField('status', v)"
-          >
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="角色">
-          <el-select
-            :model-value="form.role_id"
-            placeholder="选择角色"
-            clearable
-            @update:model-value="(v) => setField('role_id', v)"
-          >
-            <el-option
-              v-for="role in roleOptions"
-              :key="role.id"
-              :label="role.name"
-              :value="role.id"
-            />
-          </el-select>
-        </el-form-item>
-      </template>
-      <template #actions>
-        <el-button type="success" @click="handleAdd">
-          <Plus /> 新增用户
-        </el-button>
       </template>
     </SearchForm>
 
-    <!-- 数据表格 -->
+    <!-- 列表 -->
     <DataTable
-      :data="userList"
-      :loading="loading"
-      :current-page="pagination.page"
-      :page-size="pagination.page_size"
-      :total="pagination.total"
-      selectable
-      @selection-change="handleSelectionChange"
-      @refresh="handleRefresh"
+      :data="userService.items.value"
+      :loading="userService.loading.value"
+      :current-page="userService.pagination.value.page"
+      :page-size="userService.pagination.value.page_size"
+      :total="userService.pagination.value.total"
+      :page-sizes="[10, 20, 50]"
+      show-export
+      empty-text="暂无用户，点击右上角新建用户"
+      @refresh="loadUsers"
+      @export="handleExport"
       @update:current-page="handlePageChange"
       @update:page-size="handlePageSizeChange"
     >
-      <el-table-column prop="username" label="用户名" min-width="120">
+      <el-table-column prop="id" label="ID" width="70" />
+      <el-table-column prop="username" label="用户名" min-width="140">
         <template #default="{ row }">
           <div class="user-cell">
-            <el-avatar :size="32" :src="row.avatar">{{ row.username?.[0]?.toUpperCase() }}</el-avatar>
+            <el-avatar :size="28">{{ avatarText(row.username) }}</el-avatar>
             <span class="username">{{ row.username }}</span>
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="full_name" label="姓名" min-width="100" />
-      <el-table-column prop="email" label="邮箱" min-width="180" />
-      <el-table-column prop="status" label="状态" width="80">
+      <el-table-column prop="email" label="邮箱" min-width="200" show-overflow-tooltip />
+      <el-table-column label="状态" width="90">
         <template #default="{ row }">
-          <el-tag :type="row.status === 1 ? 'success' : 'danger'">
-            {{ row.status === 1 ? '启用' : '禁用' }}
+          <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
+            {{ row.is_active ? '启用' : '禁用' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="角色" min-width="150">
+      <el-table-column label="角色" min-width="220">
         <template #default="{ row }">
-          <el-tag
-            v-for="role in row.roles"
-            :key="role.id"
-            type="info"
-            size="small"
-            class="role-tag"
-          >
-            {{ role.name }}
-          </el-tag>
+          <template v-if="row.roles?.length">
+            <el-tag
+              v-for="role in row.roles"
+              :key="role.id"
+              size="small"
+              effect="plain"
+              class="role-tag"
+            >
+              {{ role.name }}
+            </el-tag>
+          </template>
+          <span v-else class="muted">未分配</span>
         </template>
       </el-table-column>
-      <el-table-column prop="last_login_at" label="最后登录" min-width="160">
+      <el-table-column label="操作" width="170" fixed="right">
         <template #default="{ row }">
-          {{ row.last_login_at || '从未登录' }}
+          <el-button link type="primary" size="small" @click="openDetail(row.id)">
+            <View /> 详情
+          </el-button>
+          <el-button link type="warning" size="small" @click="openAssignDialog(row as UserListItem)">
+            <Avatar /> 分配角色
+          </el-button>
         </template>
       </el-table-column>
-
-      <template #actions="{ row }">
-        <el-button size="small" type="primary" link @click="handleEdit(row as UserInfo)">
-          <Edit /> 编辑
-        </el-button>
-        <el-button size="small" type="info" link @click="handleResetPassword(row as UserInfo)">
-          <Key /> 重置密码
-        </el-button>
-        <el-button
-          size="small"
-          :type="row.status === 1 ? 'danger' : 'success'"
-          link
-          @click="handleToggleStatus(row as UserInfo)"
-        >
-          {{ row.status === 1 ? '禁用' : '启用' }}
-        </el-button>
-        <el-button size="small" type="danger" link @click="handleDelete(row as UserInfo)">
-          <Delete /> 删除
-        </el-button>
-      </template>
     </DataTable>
+
+    <!-- 新建用户 -->
+    <el-dialog v-model="createVisible" title="新建用户" width="460px" destroy-on-close>
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="84px">
+        <el-form-item label="用户名" prop="username">
+          <el-input v-model="createForm.username" placeholder="3-50 个字符" clearable />
+        </el-form-item>
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="createForm.email" placeholder="name@example.com" clearable />
+        </el-form-item>
+        <el-form-item label="初始密码" prop="password">
+          <el-input v-model="createForm.password" type="password" show-password placeholder="至少 6 位" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="createVisible = false">取消</el-button>
+        <el-button type="primary" :loading="creating" @click="submitCreate">创建</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 分配角色 -->
+    <el-dialog v-model="assignVisible" title="分配角色" width="460px" destroy-on-close>
+      <p class="dialog-hint">
+        用户：<strong>{{ assignTarget?.username }}</strong>，勾选后保存立即生效。
+      </p>
+      <el-checkbox-group v-model="selectedRoleIds" class="role-options">
+        <el-checkbox v-for="role in roleOptions" :key="role.id" :value="role.id" border>
+          <div class="role-option">
+            <span class="role-name">{{ role.name }}</span>
+            <span class="role-code">{{ role.code }}</span>
+          </div>
+        </el-checkbox>
+      </el-checkbox-group>
+      <el-empty v-if="!roleOptions.length && !assignLoading" description="暂无可用角色" :image-size="60" />
+      <template #footer>
+        <el-button @click="assignVisible = false">取消</el-button>
+        <el-button type="primary" :loading="assigning" @click="submitAssign">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 用户详情 -->
+    <el-drawer v-model="detailVisible" title="用户详情" size="420px" destroy-on-close>
+      <div v-if="detailLoading" class="detail-loading">
+        <el-skeleton :rows="5" animated />
+      </div>
+      <template v-else-if="userService.detail.value">
+        <div class="detail-head">
+          <el-avatar :size="48">{{ avatarText(userService.detail.value.username) }}</el-avatar>
+          <div>
+            <h3>{{ userService.detail.value.username }}</h3>
+            <p>{{ userService.detail.value.email }}</p>
+          </div>
+          <el-tag :type="userService.detail.value.is_active ? 'success' : 'info'" size="small">
+            {{ userService.detail.value.is_active ? '启用' : '禁用' }}
+          </el-tag>
+        </div>
+
+        <el-descriptions :column="1" border class="detail-desc">
+          <el-descriptions-item label="用户 ID">{{ userService.detail.value.id }}</el-descriptions-item>
+          <el-descriptions-item label="角色数量">{{ userService.detail.value.roles.length }}</el-descriptions-item>
+          <el-descriptions-item label="权限数量">{{ detailPermissionCodes.length }}</el-descriptions-item>
+        </el-descriptions>
+
+        <h4 class="detail-section-title">角色</h4>
+        <div class="detail-tags">
+          <el-tag v-for="role in userService.detail.value.roles" :key="role.id" effect="plain">
+            {{ role.name }}（{{ role.code }}）
+          </el-tag>
+          <span v-if="!userService.detail.value.roles.length" class="muted">未分配角色</span>
+        </div>
+
+        <h4 class="detail-section-title">权限</h4>
+        <div class="detail-tags">
+          <el-tag
+            v-for="code in detailPermissionCodes"
+            :key="code"
+            size="small"
+            type="info"
+          >
+            {{ code }}
+          </el-tag>
+          <span v-if="!detailPermissionCodes.length" class="muted">暂无权限</span>
+        </div>
+      </template>
+    </el-drawer>
   </PageContainer>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { ElFormItem, ElInput, ElSelect, ElOption, ElButton, ElTableColumn, ElTag, ElAvatar, ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Edit, Key, Delete } from '@element-plus/icons-vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import {
+  ElButton, ElForm, ElFormItem, ElInput, ElDialog, ElDrawer, ElCheckboxGroup,
+  ElCheckbox, ElAvatar, ElTag, ElTableColumn, ElEmpty, ElDescriptions,
+  ElDescriptionsItem, ElSkeleton, ElMessage,
+} from 'element-plus'
+import { Plus, View, Avatar } from '@element-plus/icons-vue'
+import type { FormInstance, FormRules } from 'element-plus'
 import PageContainer from '@/components/common/PageContainer.vue'
 import SearchForm from '@/components/common/SearchForm.vue'
 import DataTable from '@/components/common/DataTable.vue'
-import { userService } from '@/services/user'
-import type { UserInfo, RoleInfo } from '@/apis/modules/user'
+import { rbacUserService } from '@/services/rbac'
+import { useRbacStore } from '@/store/modules/rbac'
+import type { UserListItem } from '@/apis/modules/rbac'
 
-const loading = ref(false)
-const userList = ref<UserInfo[]>([])
-const roleOptions = ref<RoleInfo[]>([])
-const selectedUsers = ref<UserInfo[]>([])
+const userService = rbacUserService
+const rbacStore = useRbacStore()
 
-const searchParams = reactive({
-  keyword: '',
-  status: undefined as number | undefined,
-  role_id: undefined as number | undefined,
-})
+const searchParams = reactive({ keyword: '' })
 
-const pagination = reactive({
-  page: 1,
-  page_size: 20,
-  total: 0,
-  total_pages: 0,
-})
+/* ---------- 列表 ---------- */
 
-// 加载用户列表
-const loadUsers = async () => {
-  loading.value = true
-  try {
-    const result = await userService.loadList({
-      page: pagination.page,
-      page_size: pagination.page_size,
-      keyword: searchParams.keyword || undefined,
-      status: searchParams.status,
-      role_id: searchParams.role_id,
-    })
-
-    if (result) {
-      userList.value = result.items
-      pagination.total = result.total
-      pagination.total_pages = result.total_pages
-    }
-  } finally {
-    loading.value = false
-  }
+const loadUsers = () => {
+  userService.load({ keyword: searchParams.keyword || undefined })
 }
 
-// 加载角色选项
-const loadRoleOptions = async () => {
-  roleOptions.value = await userService.getRoleOptions()
-}
-
-// 搜索
 const handleSearch = () => {
-  pagination.page = 1
-  loadUsers()
+  userService.load({ keyword: searchParams.keyword || undefined, page: 1 })
 }
 
-// 重置
 const handleReset = () => {
   searchParams.keyword = ''
-  searchParams.status = undefined
-  searchParams.role_id = undefined
-  pagination.page = 1
-  loadUsers()
+  userService.load({ keyword: undefined, page: 1 })
 }
 
-// 刷新
-const handleRefresh = () => {
-  loadUsers()
-}
-
-// 分页
 const handlePageChange = (page: number) => {
-  pagination.page = page
-  loadUsers()
+  userService.setPage(page)
 }
 
 const handlePageSizeChange = (size: number) => {
-  pagination.page_size = size
-  pagination.page = 1
-  loadUsers()
+  userService.setPageSize(size)
 }
 
-// 选择变化
-const handleSelectionChange = (selection: UserInfo[]) => {
-  selectedUsers.value = selection
+const handleExport = () => {
+  const rows = userService.items.value
+  if (!rows.length) {
+    ElMessage.warning('当前没有可导出的数据')
+    return
+  }
+  const header = ['ID', '用户名', '邮箱', '状态', '角色']
+  const lines = rows.map((row) => [
+    row.id,
+    row.username,
+    row.email,
+    row.is_active ? '启用' : '禁用',
+    (row.roles || []).map((r) => r.name).join(' / ') || '未分配',
+  ])
+  const csv = [header, ...lines].map((cols) => cols.join(',')).join('\n')
+  const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `users-${new Date().toISOString().slice(0, 10)}.csv`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }
 
-// 新增用户
-const handleAdd = () => {
-  ElMessage.info('新增用户功能开发中')
+const avatarText = (username: string) => (username || '?').slice(0, 1).toUpperCase()
+
+/* ---------- 新建用户 ---------- */
+
+const createVisible = ref(false)
+const creating = ref(false)
+const createFormRef = ref<FormInstance>()
+const createForm = reactive({ username: '', email: '', password: '' })
+
+const createRules: FormRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 50, message: '长度在 3 到 50 个字符', trigger: 'blur' },
+  ],
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
+  ],
+  password: [
+    { required: true, message: '请输入初始密码', trigger: 'blur' },
+    { min: 6, message: '密码至少 6 位', trigger: 'blur' },
+  ],
 }
 
-// 编辑用户
-const handleEdit = (row: UserInfo) => {
-  ElMessage.info(`编辑用户 ${row.username}（功能开发中）`)
+const openCreateDialog = () => {
+  createForm.username = ''
+  createForm.email = ''
+  createForm.password = ''
+  createVisible.value = true
 }
 
-// 重置密码
-const handleResetPassword = (row: UserInfo) => {
-  ElMessageBox.prompt(`请输入用户「${row.username}」的新密码`, '重置密码', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    inputType: 'password',
-    inputValidator: (value) => {
-      if (!value) return '密码不能为空'
-      if (value.length < 6) return '密码长度至少6位'
-      return true
-    },
-  }).then(async ({ value }) => {
-    const success = await userService.resetPassword(row.id, {
-      password: value,
-      confirm_password: value,
-    })
-    if (success) {
-      ElMessage.success('密码重置成功')
+const submitCreate = async () => {
+  if (!createFormRef.value) return
+  await createFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    creating.value = true
+    try {
+      const user = await userService.createUser({ ...createForm })
+      if (user) {
+        ElMessage.success('用户创建成功')
+        createVisible.value = false
+        rbacStore.loadStats()
+        loadUsers()
+      } else {
+        ElMessage.error('创建失败，请稍后重试')
+      }
+    } finally {
+      creating.value = false
     }
-  }).catch(() => {})
+  })
 }
 
-// 切换状态
-const handleToggleStatus = async (row: UserInfo) => {
-  const newStatus = row.status === 1 ? 0 : 1
-  const action = newStatus === 1 ? '启用' : '禁用'
-  await ElMessageBox.confirm(`确定要${action}用户「${row.username}」吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  }).then(async () => {
-    const success = await userService.toggleStatus(row.id, newStatus)
-    if (success) {
-      ElMessage.success(`${action}成功`)
+/* ---------- 分配角色 ---------- */
+
+const assignVisible = ref(false)
+const assigning = ref(false)
+const assignLoading = ref(false)
+const assignTarget = ref<UserListItem | null>(null)
+const selectedRoleIds = ref<number[]>([])
+const roleOptions = computed(() => rbacStore.roleOptions)
+
+const openAssignDialog = async (row: UserListItem) => {
+  assignTarget.value = row
+  selectedRoleIds.value = (row.roles || []).map((r) => r.id)
+  assignVisible.value = true
+  assignLoading.value = true
+  try {
+    await rbacStore.loadRoleOptions()
+    const detail = await userService.fetchDetail(row.id)
+    if (detail) {
+      selectedRoleIds.value = detail.roles.map((r) => r.id)
     }
-  }).catch(() => {})
+  } finally {
+    assignLoading.value = false
+  }
 }
 
-// 删除用户
-const handleDelete = async (row: UserInfo) => {
-  await ElMessageBox.confirm(`确定要删除用户「${row.username}」吗？此操作不可恢复`, '警告', {
-    confirmButtonText: '删除',
-    cancelButtonText: '取消',
-    type: 'error',
-  }).then(async () => {
-    const success = await userService.delete(row.id)
-    if (success) {
-      ElMessage.success('删除成功')
+const submitAssign = async () => {
+  if (!assignTarget.value) return
+  assigning.value = true
+  try {
+    const result = await userService.assignRoles(assignTarget.value.id, selectedRoleIds.value)
+    if (result) {
+      ElMessage.success('角色分配成功')
+      assignVisible.value = false
+      // 角色变更可能影响统计（活跃用户不变），刷新列表即可
       loadUsers()
+    } else {
+      ElMessage.error('分配失败，请稍后重试')
     }
-  }).catch(() => {})
+  } finally {
+    assigning.value = false
+  }
 }
+
+/* ---------- 详情 ---------- */
+
+const detailVisible = ref(false)
+const detailLoading = ref(false)
+
+const openDetail = async (userId: number) => {
+  detailVisible.value = true
+  detailLoading.value = true
+  try {
+    await userService.fetchDetail(userId)
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+const detailPermissionCodes = computed(() => {
+  const detail = userService.detail.value
+  if (!detail) return []
+  return [...new Set(detail.roles.flatMap((role) => role.permissions.map((p) => p.code)))].sort()
+})
 
 onMounted(() => {
   loadUsers()
-  loadRoleOptions()
+  rbacStore.loadRoleOptions()
 })
 </script>
 
@@ -296,5 +373,87 @@ onMounted(() => {
 
 .role-tag {
   margin-right: 4px;
+  margin-bottom: 2px;
+}
+
+.muted {
+  color: var(--el-text-color-placeholder, #c0c4cc);
+  font-size: 13px;
+}
+
+.dialog-hint {
+  font-size: 13px;
+  color: var(--el-text-color-secondary, #909399);
+  margin-bottom: 14px;
+}
+
+.role-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+
+  :deep(.el-checkbox) {
+    width: 100%;
+    margin-right: 0;
+    height: auto;
+    padding: 10px 12px;
+  }
+}
+
+.role-option {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.4;
+
+  .role-name {
+    font-size: 14px;
+    color: var(--el-text-color-primary, #303133);
+  }
+
+  .role-code {
+    font-size: 12px;
+    color: var(--el-text-color-secondary, #909399);
+    font-family: var(--font-mono, monospace);
+  }
+}
+
+.detail-loading {
+  padding: 8px 0;
+}
+
+.detail-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+
+  h3 {
+    font-size: 16px;
+    margin: 0 0 2px;
+  }
+
+  p {
+    font-size: 13px;
+    color: var(--el-text-color-secondary, #909399);
+    margin: 0;
+  }
+}
+
+.detail-desc {
+  margin: 16px 0;
+}
+
+.detail-section-title {
+  font-size: 14px;
+  color: var(--el-text-color-primary, #303133);
+  margin: 18px 0 10px;
+}
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 </style>

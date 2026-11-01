@@ -56,30 +56,40 @@ function removeDynamicRoutes(): void {
 
 /**
  * 根据权限过滤路由
- * 规则：无权限要求的路由对所有登录用户可见；有子路由时，父路由在自身有权限或存在可访问子路由时保留
+ * 规则：
+ * - 无权限要求的叶子路由对所有登录用户可见
+ * - 带权限要求的叶子路由：有任一权限即保留
+ * - 父路由：自身有权限，或存在"带权限要求且已通过"的子路由时保留（
+ *   仅有无需权限的占位子路由不足以让受限父路由出现在菜单中）
  */
 function filterRoutesByPermission(routes: RouteRecordRaw[], permissions: string[]): RouteRecordRaw[] {
   const filteredRoutes: RouteRecordRaw[] = []
 
   routes.forEach((route) => {
     const routePermissions = route.meta?.permissions as string[] | undefined
-    const hasRoutePermission =
-      !routePermissions || routePermissions.length === 0 || routePermissions.some((p) => permissions.includes(p))
+    const hasOwnPermissionRequirement = Boolean(routePermissions && routePermissions.length > 0)
+    const passesOwnPermission =
+      !hasOwnPermissionRequirement || routePermissions!.some((p) => permissions.includes(p))
 
     let filteredRoute: RouteRecordRaw | null = null
 
     if (route.children && route.children.length > 0) {
-      // 递归过滤子路由
       const children = filterRoutesByPermission(route.children, permissions)
-      // 父路由自身有权限，或存在可访问的子路由时保留
-      if (hasRoutePermission || children.length > 0) {
+      const hasAuthorizedChild = children.some((child) => {
+        const childPermissions = child.meta?.permissions as string[] | undefined
+        return Boolean(childPermissions && childPermissions.length > 0)
+      })
+
+      if (hasOwnPermissionRequirement) {
+        // 受限父路由：自身通过，或至少有一个真正授权的子路由
+        if (passesOwnPermission || hasAuthorizedChild) {
+          filteredRoute = { ...route, children }
+        }
+      } else if (children.length > 0) {
         filteredRoute = { ...route, children }
       }
-    } else {
-      // 叶子路由：有权限才保留
-      if (hasRoutePermission) {
-        filteredRoute = { ...route }
-      }
+    } else if (passesOwnPermission) {
+      filteredRoute = { ...route }
     }
 
     if (filteredRoute) {

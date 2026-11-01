@@ -2,12 +2,18 @@
  * 测试环境配置
  */
 
-import { beforeAll, afterAll, afterEach } from 'vitest'
+import { beforeAll, afterAll, afterEach, beforeEach } from 'vitest'
 import { server } from '@/mocks/server'
+import { resetMockData } from '@/mocks/data'
 
 // 启动Mock Server
 beforeAll(() => {
   server.listen({ onUnhandledFrame: 'error' })
+})
+
+// 每个测试前重置 Mock 数据，保证用例隔离
+beforeEach(() => {
+  resetMockData()
 })
 
 // 每个测试后重置处理器

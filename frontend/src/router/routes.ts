@@ -86,14 +86,25 @@ export const asyncRoutes: RouteRecordRaw[] = [
     path: '/system',
     name: 'System',
     component: Layout,
-    redirect: '/system/user',
+    redirect: '/system/overview',
     meta: {
       title: '系统管理',
       icon: 'Setting',
       requiresAuth: true,
-      permissions: ['system:manage'],
+      permissions: ['system:user:view', 'system:role:view', 'system:permission:view'],
     },
     children: [
+      {
+        path: 'overview',
+        name: 'SystemOverview',
+        component: () => import('@/pages/system/index.vue'),
+        meta: {
+          title: '系统概览',
+          icon: 'Odometer',
+          requiresAuth: true,
+          permissions: ['system:user:view', 'system:role:view', 'system:permission:view'],
+        },
+      },
       {
         path: 'user',
         name: 'UserManagement',
@@ -135,7 +146,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '部门管理',
           icon: 'Building',
           requiresAuth: true,
-          permissions: ['system:department:view'],
+          permissions: [],
+          hideInMenu: true,
         },
       },
       {
@@ -146,7 +158,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '菜单管理',
           icon: 'Menu',
           requiresAuth: true,
-          permissions: ['system:menu:view'],
+          permissions: [],
+          hideInMenu: true,
         },
       },
       {
@@ -157,7 +170,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '字典管理',
           icon: 'BookOpen',
           requiresAuth: true,
-          permissions: ['system:dict:view'],
+          permissions: [],
+          hideInMenu: true,
         },
       },
       {
@@ -168,7 +182,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '参数配置',
           icon: 'SlidersHorizontal',
           requiresAuth: true,
-          permissions: ['system:config:view'],
+          permissions: [],
+          hideInMenu: true,
         },
       },
       {
@@ -179,7 +194,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '登录日志',
           icon: 'LogIn',
           requiresAuth: true,
-          permissions: ['system:log:login:view'],
+          permissions: [],
+          hideInMenu: true,
         },
       },
       {
@@ -190,7 +206,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '操作日志',
           icon: 'FileText',
           requiresAuth: true,
-          permissions: ['system:log:operation:view'],
+          permissions: [],
+          hideInMenu: true,
         },
       },
     ],
@@ -204,7 +221,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
       title: '系统监控',
       icon: 'Activity',
       requiresAuth: true,
-      permissions: ['monitor:view'],
+      permissions: ['monitor:online:view', 'monitor:server:view'],
     },
     children: [
       {
@@ -237,7 +254,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
           title: '缓存监控',
           icon: 'Database',
           requiresAuth: true,
-          permissions: ['monitor:cache:view'],
+          permissions: [],
+          hideInMenu: true,
         },
       },
     ],
